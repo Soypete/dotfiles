@@ -7,27 +7,29 @@ set tabstop=4
 set shiftwidth=4
 set number
 
-colorscheme desert
-
-""" vim plug"""
+" vim plug"""
 call plug#begin('~/.vim/plugged')
 
+Plug 'buoto/gotests-vim'
+Plug 'ekalinin/dockerfile.vim'
+Plug 'fatih/vim-go'
+Plug 'jremmen/vim-ripgrep'
 Plug 'junegunn/seoul256.vim'
 Plug 'junegunn/vim-easy-align'
+Plug 'liuchengxu/space-vim-dark'
+Plug 'luochen1990/rainbow'
 Plug 'scrooloose/nerdtree'
-Plug 'fatih/vim-go'
-Plug 'kien/rainbow_parentheses.vim'
-Plug 'valloric/youcompleteme'
+Plug 'scrooloose/syntastic'
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
-Plug 'jremmen/vim-ripgrep'
+Plug 'valloric/youcompleteme'
 Plug 'wakatime/vim-wakatime'
+
 
 call plug#end()
 
   """"" Go Bindings """""
-"au Filetype go nmap <leader>l :GoLint<CR>
-"au Filetype go nmap <leader>b :GoToggleBreakpoint<CR>
-"au Filetype go map <leader>d :GoDebug<CR>
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_fields = 1
@@ -62,11 +64,27 @@ highlight SyntasticWarningLine ctermbg=130
 let g:pymode_python = 'python3'
 
 " NerdTree
-autocmd vimenter * NERDTree
-map <C-n> :NERDTreeToggle<CR>
+nnoremap <leader>n :NERDTreeFocus<CR>
+nnoremap <C-n> :NERDTree<CR>
+nnoremap <C-t> :NERDTreeToggle<CR>
+nnoremap <C-f> :NERDTreeFind<CR>
+
+" Start NERDTree and put the cursor back in the other window.
+autocmd vimenter * NERDTreeToggleautocmd vimenter * NERDTreeToggle
+" Exit Vim if NERDTree is the only window remaining in the only tab.
+autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif
+" Open the existing NERDTree on each new tab.
+autocmd BufWinEnter * if getcmdwintype() == '' | silent NERDTreeMirror | endif
 
 " RUST
 let g:rustfmt_autosave = 1
 
 " Rainbow Paranetheses
-let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowToggle
+ let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowToggle
+
+" space vim dark
+colorscheme space-vim-dark
+hi Normal     ctermbg=NONE guibg=NONE
+hi LineNr     ctermbg=NONE guibg=NONE
+hi SignColumn ctermbg=NONE guibg=NONE
+
