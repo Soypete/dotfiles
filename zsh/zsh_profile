@@ -1,1 +1,19 @@
-/Users/miriahpeterson/.zsh_profile
+export GOPATH="${HOME}/Code/go"
+export PATH="${PATH}:/opt/local/bin:/usr/local/bin/:${GOPATH}/bin:~/.local/bin:$usr/local/Homebrew/bin"
+export PATH="${PATH}/${HOME}/.cargo/bin:opt/homebrew/lib"
+export TERM="xterm-256color"
+export PYTHONPATH="/usr/local/share/python:${PYTHONPATH}"
+export ZSH_WAKATIME_BIN="${HOME}/opt/homebrew/lib/python3.9/site-packages/wakatime"
+
+# keys and stuff
+source ~/.secrets
+
+alias editc="nvim ~/.zsh_profile"
+alias editv="nvim ~/.vimrc"
+alias editn="nvim ~/.config/nvim/init.vim"
+alias re="source ~/.zshrc"
+alias ve="source ~/.vimrc"
+alias s="history | grep "
+alias drmi="docker rmi $(docker images -a -q)"
+alias pip="pip3"
+alias python="python3"
