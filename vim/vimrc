@@ -1,6 +1,6 @@
 set nocompatible  
 set spelllang=en
-set spell
+" set spell
 syntax enable
 filetype plugin indent on
 set tabstop=4
@@ -12,7 +12,7 @@ call plug#begin('~/.vim/plugged')
 
 Plug 'buoto/gotests-vim'
 Plug 'ekalinin/dockerfile.vim'
-Plug 'fatih/vim-go'
+Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'jremmen/vim-ripgrep'
 Plug 'junegunn/seoul256.vim'
 Plug 'junegunn/vim-easy-align'
@@ -25,11 +25,14 @@ Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
 Plug 'valloric/youcompleteme'
 Plug 'wakatime/vim-wakatime'
-
+Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 
 call plug#end()
 
   """"" Go Bindings """""
+"au Filetype go nmap <leader>l :GoLint<CR>
+"au Filetype go nmap <leader>b :GoToggleBreakpoint<CR>
+"au Filetype go map <leader>d :GoDebug<CR>
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_fields = 1
@@ -37,18 +40,24 @@ let g:go_highlight_types = 1
 let g:go_highlight_operators = 1
 let g:go_fmt_command = "goimports"
 let g:go_fmt_autosave = 1
+let g:go_mod_fmt_autosave = 1
+let g:go_imports_autosave = 1
+
 
 let g:go_term_enabled = 1
 let g:go_list_type = "quickfix"
 
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_w = 1
-let g:syntastic_check_autosave = 1
-let g:syntastic_go_checkers = ["gofmt", "govet", "golint", "errcheck", "deadcode", "gometalinter"]
-let g:syntastic_style_error_symbol=">>"
-let g:syntastic_style_warning_symbol=">>"
+
+" let g:syntastic_always_populate_loc_list = 1
+" let g:syntastic_auto_loc_list = 1
+" let g:syntastic_check_on_open = 1
+" let g:syntastic_check_on_w = 1
+" let g:syntastic_check_autosave = 1
+" let g:syntastic_go_checkers = ["gofmt", "govet", "golint", "errcheck", "deadcode", "gometalinter"]
+" let g:syntastic_style_error_symbol=">>"
+" let g:syntastic_style_warning_symbol=">>"
+let g:go_metalinter_autosave = 1
+ let g:go_metalinter_enabled = ['all']
 let g:go_highlight_build_constraints = 1
 let g:go_highlight_extra_types = 1
 let g:go_highlight_fields = 1
@@ -70,11 +79,16 @@ nnoremap <C-t> :NERDTreeToggle<CR>
 nnoremap <C-f> :NERDTreeFind<CR>
 
 " Start NERDTree and put the cursor back in the other window.
-autocmd vimenter * NERDTreeToggleautocmd vimenter * NERDTreeToggle
+augroup nerdtree_open
+    autocmd!
+    autocmd VimEnter * NERDTree | wincmd p
+augroup END
+
+
 " Exit Vim if NERDTree is the only window remaining in the only tab.
-autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif
-" Open the existing NERDTree on each new tab.
-autocmd BufWinEnter * if getcmdwintype() == '' | silent NERDTreeMirror | endif
+augroup nerdtree_close
+	autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif
+augroup END
 
 " RUST
 let g:rustfmt_autosave = 1
