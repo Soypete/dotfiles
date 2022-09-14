@@ -91,7 +91,7 @@ source ~/.zsh_profile
 
 # ssh
  export SSH_KEY_PATH="~/.ssh/rsa_id"
- source ~/.iterm2_shell_integration.zsh
+ # source ~/.iterm2_shell_integration.zsh
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -109,3 +109,7 @@ if [ -f '/Users/miriahpeterson/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/
 if [ -f '/Users/miriahpeterson/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/miriahpeterson/google-cloud-sdk/completion.zsh.inc'; fi
 export PATH="/usr/local/sbin:$PATH"
 export PATH="/usr/local/opt/llvm/bin:$PATH"
+source ~/.iterm2_shell_integration.zsh
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
