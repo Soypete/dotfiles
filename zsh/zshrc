@@ -113,3 +113,7 @@ source ~/.iterm2_shell_integration.zsh
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+
+# aws autocompletion
+autoload bashcompinit && bashcompinit
+autoload -Uz compinit && compinit
