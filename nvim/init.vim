@@ -21,6 +21,7 @@ Plug 'rust-lang/rust.vim'
 Plug 'valloric/youcompleteme'
 Plug 'wakatime/vim-wakatime'
 Plug 'ThePrimeagen/vim-be-good'
+Plug 'vim-scripts/SQLUtilities'
 
 Plug 'simrat39/rust-tools.nvim'
 Plug 'autozimu/LanguageClient-neovim', { 'branch': 'next', 'do': 'bash install.sh' }
