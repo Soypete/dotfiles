@@ -25,9 +25,10 @@ Plug 'scrooloose/syntastic'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
-Plug 'valloric/youcompleteme' { 'do': './install.py' }
+Plug 'valloric/youcompleteme' { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
+Plug 'sbdchd/neoformat'
 
 call plug#end()
 
@@ -51,7 +52,7 @@ let g:go_list_type = "quickfix"
  let g:syntastic_always_populate_loc_list = 1
  let g:syntastic_auto_loc_list = 1
  let g:syntastic_check_on_open = 1
-"let g:syntastic_check_on_w = 1
+let g:syntastic_check_on_w = 1
 let g:syntastic_check_autosave = 1
 " let g:syntastic_go_checkers = ['gofmt', 'govet', 'revive', 'errcheck', 'deadcode', 'gometalinter', 'misspell']
 let g:syntastic_style_error_symbol='>>'
@@ -71,11 +72,10 @@ highlight SyntasticError ctermbg=231
 highlight SyntasticWarningLine ctermbg=130
 
 """"" GOTESTS"""""
-let g:gotests_bin = '$GOPATH/bin/gotests'
-
+" let g:gotests_bin = '$GOPATH/bin/gotests'
 
 "python-mode
-let g:pymode_python = 'python3'
+" let g:pymode_python = 'python3'
 
 " NerdTree
 nnoremap <leader>n :NERDTreeFocus<CR>
@@ -105,3 +105,21 @@ let g:rustfmt_autosave = 1
 colorscheme nightfly
 let g:lightline = { 'colorscheme': 'nightfly' }
 let g:nightflyCursorColor = 1
+
+" Neoformat
+" Enable alignment
+let g:neoformat_basic_format_align = 1
+
+" Enable tab to spaces conversion
+let g:neoformat_basic_format_retab = 1
+
+" Enable trimmming of trailing whitespace
+let g:neoformat_basic_format_trim = 1
+let g:neoformat_enabled_python = ['autopep8', 'yapf', 'docformatter']
+let g:neoformat_enabled_json = ['jq', 'prettier']
+let g:neoformat_enabled_proto = ['clang-format']
+let g:neoformat_enabled_rust = ['rustfmt']
+let g:neoformat_enabled_sql = ['sqlfmt', 'pg_format']
+let g:neoformat_enabled_yaml = ['prettier', 'yamlfmt']
+
+

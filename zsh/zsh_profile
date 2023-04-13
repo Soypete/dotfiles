@@ -8,6 +8,7 @@ export ZSH_WAKATIME_BIN="${HOME}/opt/homebrew/lib/python3.9/site-packages/wakati
 source ~/.secrets
 
 alias editc="nvim ~/.zsh_profile"
+alias docker="podman"
 alias editv="nvim ~/.vimrc"
 alias editn="nvim ~/.config/nvim/init.vim"
 alias re="source ~/.zshrc"
@@ -16,9 +17,8 @@ alias s="history | grep "
 alias drmi="docker rmi $(docker images -a -q)"
 alias pip="pip3"
 alias python="python3"
-alias ts="cd /Users/miriahpeterson/Code/go/src/tailscale.io"
-alias corp="cd /Users/miriahpeterson/Code/go/src/tailscale.io/corp"
-alias oss="cd /Users/miriahpeterson/Code/go/src/tailscale.io/tailscale"
-alias sshnode=" ssh 100.96.14.120"
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
+export GPG_TTY=$(tty)
+
