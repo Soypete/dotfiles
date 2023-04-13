@@ -8,37 +8,33 @@ set number
 set termguicolors
 autocmd BufNewFile,BufRead *.csv   set filetype=csv_semicolon
 autocmd BufNewFile,BufRead *.dat   set filetype=csv_pipe
+" copy to global clipboard
+set clipboard=unnamed
 
 " vim plug"""
 call plug#begin('~/.vim/plugged')
 
 Plug 'liuchengxu/space-vim-dark'
 Plug 'bluz71/vim-nightfly-guicolors'
-Plug 'buoto/gotests-vim' 
+Plug 'buoto/gotests-vim'
 Plug 'ekalinin/dockerfile.vim'
 Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'jremmen/vim-ripgrep'
-Plug 'junegunn/seoul256.vim'
-Plug 'junegunn/vim-easy-align'
 Plug 'liuchengxu/space-vim-dark'
 Plug 'luochen1990/rainbow'
 Plug 'mechatroner/rainbow_csv'
 Plug 'scrooloose/nerdtree'
-Plug 'scrooloose/syntastic'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
-Plug 'valloric/youcompleteme' { 'do': './install.py' }
+Plug 'valloric/youcompleteme' { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
 Plug 'vim-scripts/SQLUtilities'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 
 call plug#end()
 
-  """"" Go Bindings """""
-"au Filetype go nmap <leader>l :GoLint<CR>
-"au Filetype go nmap <leader>b :GoToggleBreakpoint<CR>
-"au Filetype go map <leader>d :GoDebug<CR>
+""""" Go Bindings """""
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_fields = 1
@@ -47,15 +43,9 @@ let g:go_highlight_operators = 1
 let g:go_fmt_command = 'goimports'
 let g:go_fmt_autosave = 1
 let g:go_mod_fmt_autosave = 1
-
+let g:go_imports_autosave = 1
 let g:go_term_enabled = 1
 let g:go_list_type = "quickfix"
-
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_style_error_symbol='>>'
-let g:syntastic_style_warning_symbol='>>'
 let g:go_metalinter_autosave = 1
 let g:go_metalinter_enabled = ['godot', 'godox', 'gofmt', 'govet', 'revive', 'errcheck', 'deadcode', 'gosimple', 'ifeffassign', 'staticcheck', 'structcheck', 'typecheck','unused', 'varcheck', 'bodyclose', 'dogsled', 'goconst', 'gocyclo', 'importas', 'rowserrcheck', 'sqlclosecheck', 'misspell']
 let g:go_highlight_build_constraints = 1
@@ -66,12 +56,9 @@ let g:go_highlight_methods = 1
 let g:go_highlight_operators = 1
 let g:go_highlight_structs = 1
 let g:go_highlight_types = 1
-highlight SyntasticError ctermbg=231
-highlight SyntasticWarningLine ctermbg=130
 
 """"" GOTESTS"""""
 let g:gotests_bin = '$GOPATH/bin/gotests'
-
 
 "python-mode
 let g:pymode_python = 'python3'
@@ -84,8 +71,8 @@ nnoremap <C-f> :NERDTreeFind<CR>
 
 " Start NERDTree and put the cursor back in the other window.
 augroup nerdtree_open
-    autocmd!
-    autocmd VimEnter * NERDTree | wincmd p
+	autocmd!
+	autocmd VimEnter * NERDTree | wincmd p
 augroup END
 
 
@@ -98,13 +85,31 @@ augroup END
 let g:rustfmt_autosave = 1
 
 " Rainbow Paranetheses
- let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowToggle
+let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowToggle
 
- 
+" Vimscript initialization file
+colorscheme nightfly
+let g:lightline = { 'colorscheme': 'nightfly' }
+let g:nightflyCursorColor = 1
 
-" space vim dark
-colorscheme space-vim-dark
-hi Normal     ctermbg=NONE guibg=NONE
-hi LineNr     ctermbg=NONE guibg=NONE
-hi SignColumn ctermbg=NONE guibg=NONE
+" Neoformat
+" Enable alignment
+let g:neoformat_basic_format_align = 1
+" Enable tab to spaces conversion
+let g:neoformat_basic_format_retab = 1
+" Enable trimmming of trailing whitespace
+let g:neoformat_basic_format_trim = 1
+let g:neoformat_enabled_python = ['autopep8', 'yapf', 'docformatter']
+let g:neoformat_enabled_json = ['jq', 'prettier']
+let g:neoformat_enabled_proto = ['clang-format']
+let g:neoformat_enabled_rust = ['rustfmt']
+let g:neoformat_enabled_sql = ['sqlfmt', 'pg_format']
+let g:neoformat_enabled_yaml = ['prettier', 'yamlfmt']
+" Enable Neoformat on save
+augroup fmt
+	autocmd!
+	autocmd BufWritePre * undojoin | Neoformat
+augroup END
 
+" yourcompleteme
+let g:ycm_enable_semantic_highlighting=1
