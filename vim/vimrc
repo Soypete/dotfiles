@@ -27,6 +27,7 @@ Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
 Plug 'valloric/youcompleteme' { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
+Plug 'ThePrimeagen/vim-be-good'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 Plug 'sbdchd/neoformat'
 
