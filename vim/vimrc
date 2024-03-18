@@ -30,9 +30,10 @@ Plug 'sbdchd/neoformat'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
-Plug 'valloric/youcompleteme' { 'do': './install.py --all' }
+Plug 'valloric/youcompleteme', { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
 Plug 'vim-scripts/SQLUtilities'
+Plug 'ziglang/zig.vim'
 
 call plug#end()
 
@@ -106,6 +107,7 @@ let g:neoformat_enabled_json = ['jq', 'prettier']
 let g:neoformat_enabled_proto = ['clang-format']
 let g:neoformat_enabled_rust = ['rustfmt']
 let g:neoformat_enabled_sql = ['sqlfmt', 'pg_format']
+let g:neoformat_enabled_terraform = ['terraform']
 let g:neoformat_enabled_yaml = ['prettier', 'yamlfmt']
 " Enable Neoformat on save
 augroup fmt
@@ -115,3 +117,6 @@ augroup END
 
 " yourcompleteme
 let g:ycm_enable_semantic_highlighting=1
+
+" zig
+let g:zig_fmt_autosave = 1
