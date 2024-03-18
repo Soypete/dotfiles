@@ -6,6 +6,7 @@ set tabstop=2
 set shiftwidth=2
 set number
 set termguicolors
+set scrolloff=20
 autocmd BufNewFile,BufRead *.csv   set filetype=csv_semicolon
 autocmd BufNewFile,BufRead *.dat   set filetype=csv_pipe
 " copy to global clipboard
@@ -101,7 +102,7 @@ let g:neoformat_basic_format_align = 1
 let g:neoformat_basic_format_retab = 1
 " Enable trimmming of trailing whitespace
 let g:neoformat_basic_format_trim = 1
-let g:neoformat_enabled_python = ['autopep8', 'yapf', 'docformatter']
+let g:neoformat_enabled_python = ['flake8', 'autopep8', 'yapf', 'docformatter']
 let g:neoformat_enabled_json = ['jq', 'prettier']
 let g:neoformat_enabled_proto = ['clang-format']
 let g:neoformat_enabled_rust = ['rustfmt']

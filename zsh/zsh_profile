@@ -2,7 +2,6 @@ export GOPATH="${HOME}/code/go"
 export PATH="${PATH}:/opt/local/bin:/usr/local/bin/:${GOPATH}/bin:~/.local/bin:$usr/local/Homebrew/bin"
 export PATH="${PATH}/${HOME}/.cargo/bin:opt/homebrew/lib"
 export TERM="xterm-256color"
-export ZSH_WAKATIME_BIN="${HOME}/opt/homebrew/lib/python3.9/site-packages/wakatime"
 
 # keys and stuff
 source ~/.secrets
@@ -16,9 +15,13 @@ alias ve="source ~/.vimrc"
 alias ts="cd ${HOME}/Code/tailscale/tailscale"
 alias corp="cd ${HOME}/Code/tailscale/corp"
 alias s="history | grep "
-alias drmi="docker rmi $(docker images -a -q)"
-alias pip="pip3"
-alias python="python3"
+alias drmi="for IMAGE in $(docker images -a -q) 
+	do 
+		docker rmi $IMAGE
+	done"
+# alias pip="pip3"
+# alias python="python3"
+# alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew'
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
