@@ -6,6 +6,7 @@ set tabstop=2
 set shiftwidth=2
 set number
 set termguicolors
+set scrolloff=20
 autocmd BufNewFile,BufRead *.csv   set filetype=csv_semicolon
 autocmd BufNewFile,BufRead *.dat   set filetype=csv_pipe
 " copy to global clipboard
@@ -23,14 +24,15 @@ Plug 'jremmen/vim-ripgrep'
 Plug 'liuchengxu/space-vim-dark'
 Plug 'luochen1990/rainbow'
 Plug 'mechatroner/rainbow_csv'
+Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 Plug 'scrooloose/nerdtree'
+Plug 'sbdchd/neoformat'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
 Plug 'valloric/youcompleteme' { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
 Plug 'vim-scripts/SQLUtilities'
-Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 
 call plug#end()
 
@@ -99,7 +101,7 @@ let g:neoformat_basic_format_align = 1
 let g:neoformat_basic_format_retab = 1
 " Enable trimmming of trailing whitespace
 let g:neoformat_basic_format_trim = 1
-let g:neoformat_enabled_python = ['autopep8', 'yapf', 'docformatter']
+let g:neoformat_enabled_python = ['flake8', 'autopep8', 'yapf', 'docformatter']
 let g:neoformat_enabled_json = ['jq', 'prettier']
 let g:neoformat_enabled_proto = ['clang-format']
 let g:neoformat_enabled_rust = ['rustfmt']

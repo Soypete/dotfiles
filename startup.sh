@@ -25,6 +25,8 @@ brew install jq
 
 touch ~/.secrets
 
+brew install --cask 1password/tap/1password-cli
+
 # check if ssh key exists
  echo -e "Checking if you have setup a key for serve ssh connection ..."
 ls -al ~/.ssh | grep id_ed25519.pub 
