@@ -77,7 +77,7 @@ plugins=(
 )
 
 source $ZSH/oh-my-zsh.sh
-source ~/.zsh_profile
+source ~/dotfiles/zsh/zsh_profile
 
 # User configuration
 #
@@ -100,7 +100,7 @@ VI_MODE_SET_CURSOR=true
 # export ARCHFLAGS="-arch x86_64"
 
 # ssh
- export SSH_KEY_PATH="~/.ssh/id_ed25519"
+ # export SSH_KEY_PATH="~/.ssh/id_ed25519"
  source ~/.iterm2_shell_integration.zsh
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
@@ -111,13 +111,30 @@ VI_MODE_SET_CURSOR=true
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+alias editz="nvim ~/.zsh_profile"
+alias editc="nvim ~/.zshrc"
+alias docker="podman"
+alias editv="nvim ~/.vimrc"
+alias editn="nvim ~/.config/nvim/init.vim"
+alias re="source ~/.zshrc"
+alias ve="source ~/.vimrc"
+alias s="history | grep "
+alias python="python3"
+alias drmi="for IMAGE in $(docker images -a -q) 
+	do 
+		docker rmi $IMAGE
+	done"
 
 # The next line updates PATH for the Google Cloud SDK.
 
 # The next line enables shell command completion for gcloud.
 export PATH="/usr/local/sbin:$PATH"
 export PATH="/usr/local/opt/llvm/bin:$PATH"
-source ~/.iterm2_shell_integration.zsh
+export GOPATH="${HOME}/code/go"
+export PATH="${PATH}:/opt/local/bin:/usr/local/bin/:${GOPATH}/bin:~/.local/bin:$usr/local/Homebrew/bin"
+export PATH="${PATH}:${HOME}/.cargo/bin:opt/homebrew/lib"
+export TERM="xterm-256color"
+source ~/.zsh_profile
 
 # aws autocompletion
 autoload bashcompinit && bashcompinit
@@ -128,3 +145,5 @@ autoload -Uz compinit && compinit
 
 autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /Users/miriahpeterson/.local/bin/terraform terraform
+autoload -U compinit; compinit
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
