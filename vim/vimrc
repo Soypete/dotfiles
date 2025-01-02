@@ -26,6 +26,8 @@ Plug 'luochen1990/rainbow'
 Plug 'mechatroner/rainbow_csv'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 Plug 'neovim/nvim-lspconfig' " https://github.com/neovim/nvim-lspconfig
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.8' }
 Plug 'scrooloose/nerdtree'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
@@ -36,6 +38,7 @@ Plug 'ziglang/zig.vim'
 call plug#end()
 
 """"" Go Bindings """""
+let g:go_def_mode='gopls'
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
 let g:go_highlight_fields = 1
@@ -43,12 +46,14 @@ let g:go_highlight_types = 1
 let g:go_highlight_operators = 1
 let g:go_fmt_command = 'goimports'
 let g:go_fmt_autosave = 1
-let g:go_mod_fmt_autosave = 1
 let g:go_imports_autosave = 1
+""" docs for gopls ""
+let g:go_info_mode='gopls'
 let g:go_term_enabled = 1
 let g:go_list_type = "quickfix"
 let g:go_metalinter_autosave = 1
 let g:go_metalinter_enabled = ['godot', 'godox', 'gofmt', 'govet', 'revive', 'errcheck', 'deadcode', 'gosimple', 'ifeffassign', 'staticcheck', 'structcheck', 'typecheck','unused', 'varcheck', 'bodyclose', 'dogsled', 'goconst', 'gocyclo', 'importas', 'rowserrcheck', 'sqlclosecheck', 'misspell']
+let g:go_mod_fmt_autosave = 1
 let g:go_highlight_build_constraints = 1
 let g:go_highlight_extra_types = 1
 let g:go_highlight_fields = 1
@@ -69,6 +74,7 @@ nnoremap <leader>n :NERDTreeFocus<CR>
 nnoremap <C-n> :NERDTree<CR>
 nnoremap <C-t> :NERDTreeToggle<CR>
 nnoremap <C-f> :NERDTreeFind<CR>
+let NERDTreeShowHidden=1
 
 " Start NERDTree and put the cursor back in the other window.
 " augroup nerdtree_open
@@ -82,6 +88,9 @@ augroup nerdtree_close
 	autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif
 augroup END
 
+" Open the existing NERDTree on each new tab.
+" autocmd BufWinEnter * if &buftype != 'quickfix' && getcmdwintype() == '' | silent NERDTreeMirror | endif
+
 " RUST
 let g:rustfmt_autosave = 1
 
@@ -92,6 +101,19 @@ let g:rainbow_active = 1 "set to 0 if you want to enable it later via :RainbowTo
 colorscheme nightfly
 let g:lightline = { 'colorscheme': 'nightfly' }
 let g:nightflyCursorColor = 1
+
+" telescope
+"" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+" Using Lua functions
+nnoremap <leader>ff <cmd>lua require('telescope.builtin').find_files()<cr>
+nnoremap <leader>fg <cmd>lua require('telescope.builtin').live_grep()<cr>
+nnoremap <leader>fb <cmd>lua require('telescope.builtin').buffers()<cr>
+nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
 
 " zig
 let g:zig_fmt_autosave = 1
