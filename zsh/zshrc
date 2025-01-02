@@ -120,11 +120,10 @@ export PATH="/usr/local/opt/llvm/bin:$PATH"
 source ~/.iterm2_shell_integration.zsh
 
 # aws autocompletion
-autoload bashcompinit && bashcompinit
+autoload -U +X bashcompinit && bashcompinit
 autoload -Uz compinit && compinit
 
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
 
-autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /Users/miriahpeterson/.local/bin/terraform terraform

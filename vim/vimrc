@@ -25,14 +25,12 @@ Plug 'liuchengxu/space-vim-dark'
 Plug 'luochen1990/rainbow'
 Plug 'mechatroner/rainbow_csv'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
+Plug 'neovim/nvim-lspconfig' " https://github.com/neovim/nvim-lspconfig
 Plug 'scrooloose/nerdtree'
-Plug 'sbdchd/neoformat'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
-Plug 'valloric/youcompleteme', { 'do': './install.py --all' }
 Plug 'wakatime/vim-wakatime'
-Plug 'vim-scripts/SQLUtilities'
 Plug 'ziglang/zig.vim'
 
 call plug#end()
@@ -73,10 +71,10 @@ nnoremap <C-t> :NERDTreeToggle<CR>
 nnoremap <C-f> :NERDTreeFind<CR>
 
 " Start NERDTree and put the cursor back in the other window.
-augroup nerdtree_open
-	autocmd!
-	autocmd VimEnter * NERDTree | wincmd p
-augroup END
+" augroup nerdtree_open
+"		autocmd!
+"		autocmd VimEnter * NERDTree | wincmd p
+" augroup END
 
 
 " Exit Vim if NERDTree is the only window remaining in the only tab.
@@ -95,28 +93,21 @@ colorscheme nightfly
 let g:lightline = { 'colorscheme': 'nightfly' }
 let g:nightflyCursorColor = 1
 
-" Neoformat
-" Enable alignment
-let g:neoformat_basic_format_align = 1
-" Enable tab to spaces conversion
-let g:neoformat_basic_format_retab = 1
-" Enable trimmming of trailing whitespace
-let g:neoformat_basic_format_trim = 1
-let g:neoformat_enabled_python = ['flake8', 'autopep8', 'yapf', 'docformatter']
-let g:neoformat_enabled_json = ['jq', 'prettier']
-let g:neoformat_enabled_proto = ['clang-format']
-let g:neoformat_enabled_rust = ['rustfmt']
-let g:neoformat_enabled_sql = ['sqlfmt', 'pg_format']
-let g:neoformat_enabled_terraform = ['terraform']
-let g:neoformat_enabled_yaml = ['prettier', 'yamlfmt']
-" Enable Neoformat on save
-augroup fmt
-	autocmd!
-	autocmd BufWritePre * undojoin | Neoformat
-augroup END
-
-" yourcompleteme
-let g:ycm_enable_semantic_highlighting=1
-
 " zig
 let g:zig_fmt_autosave = 1
+
+:lua << EOF
+local lspconfig = require('lspconfig')
+lspconfig.zls.setup {
+	settings = {
+		zls = {
+			enable_snippets = true,
+			enable_build_on_save = true,
+			enable_autofix = true,
+		}
+		}
+	}
+EOF
+
+
+
