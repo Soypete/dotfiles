@@ -5,5 +5,7 @@ alias cdgo="cd ~/code/go-projects"
 alias cdml="cd ~/code/ml"
 alias cdmisc="cd ~/code/misc"
 
+export XDG_CONFIG_HOME="$HOME/dotfiles"
+
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
