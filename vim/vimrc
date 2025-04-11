@@ -31,12 +31,10 @@ Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.8' }
 Plug 'prabirshrestha/asyncomplete.vim'
 Plug 'prabirshrestha/vim-lsp'
 Plug 'scrooloose/nerdtree'
-Plug 'sbdchd/neoformat'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
 Plug 'rust-lang/rust.vim'
 Plug 'wakatime/vim-wakatime'
-Plug 'vim-scripts/SQLUtilities'
 Plug 'ziglang/zig.vim'
 
 call plug#end()
@@ -82,8 +80,8 @@ let NERDTreeShowHidden=1
 
 " Start NERDTree and put the cursor back in the other window.
 " augroup nerdtree_open
-" 	autocmd!
-" 	autocmd VimEnter * NERDTree | wincmd p
+"		autocmd!
+"		autocmd VimEnter * NERDTree | wincmd p
 " augroup END
 
 
@@ -125,7 +123,6 @@ let g:neoformat_enabled_yaml = ['prettier','yamlfmt']
 "		autocmd!
 "		autocmd BufWritePre * undojoin | Neoformat
 " augroup END
-
 " telescope
 "" Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -141,7 +138,6 @@ nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
 
 " zig
 let g:zig_fmt_autosave = 1
-
 
 " lsp
 if executable('pylsp')
@@ -186,3 +182,4 @@ augroup END
 inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
 inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
+

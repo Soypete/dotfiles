@@ -1,5 +1,9 @@
 # keys and stuff
 source ~/.secrets
 
+alias cdgo="cd ~/code/go-projects"
+alias cdml="cd ~/code/ml"
+alias cdmisc="cd ~/code/misc"
+
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
