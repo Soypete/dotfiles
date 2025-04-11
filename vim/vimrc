@@ -23,11 +23,13 @@ Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 Plug 'jremmen/vim-ripgrep'
 Plug 'liuchengxu/space-vim-dark'
 Plug 'luochen1990/rainbow'
+Plug 'mattn/vim-lsp-settings'
 Plug 'mechatroner/rainbow_csv'
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
-Plug 'neovim/nvim-lspconfig' " https://github.com/neovim/nvim-lspconfig
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.8' }
+Plug 'prabirshrestha/asyncomplete.vim'
+Plug 'prabirshrestha/vim-lsp'
 Plug 'scrooloose/nerdtree'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-commentary'
@@ -102,6 +104,25 @@ colorscheme nightfly
 let g:lightline = { 'colorscheme': 'nightfly' }
 let g:nightflyCursorColor = 1
 
+" Neoformat
+" Enable alignment
+let g:neoformat_basic_format_align = 1
+" Enable tab to spaces conversion
+let g:neoformat_basic_format_retab = 1
+" Enable trimmming of trailing whitespace
+let g:neoformat_basic_format_trim = 1
+let g:neoformat_enabled_python = ['flake8', 'autopep8', 'yapf', 'docformatter']
+let g:neoformat_enabled_json = ['jq', 'prettier']
+let g:neoformat_enabled_proto = ['clang-format']
+let g:neoformat_enabled_rust = ['rustfmt']
+let g:neoformat_enabled_sql = ['sqlfmt', 'pg_format']
+let g:neoformat_enabled_terraform = ['terraform']
+let g:neoformat_enabled_yaml = ['prettier','yamlfmt']
+" Enable Neoformat on save
+" augroup fmt
+"		autocmd!
+"		autocmd BufWritePre * undojoin | Neoformat
+" augroup END
 " telescope
 "" Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -118,18 +139,47 @@ nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
 " zig
 let g:zig_fmt_autosave = 1
 
-:lua << EOF
-local lspconfig = require('lspconfig')
-lspconfig.zls.setup {
-	settings = {
-		zls = {
-			enable_snippets = true,
-			enable_build_on_save = true,
-			enable_autofix = true,
-		}
-		}
-	}
-EOF
+" lsp
+if executable('pylsp')
+    " pip install python-lsp-server
+    au User lsp_setup call lsp#register_server({
+        \ 'name': 'pylsp',
+        \ 'cmd': {server_info->['pylsp']},
+        \ 'allowlist': ['python'],
+        \ })
+endif
 
+function! s:on_lsp_buffer_enabled() abort
+    setlocal omnifunc=lsp#complete
+    setlocal signcolumn=yes
+    if exists('+tagfunc') | setlocal tagfunc=lsp#tagfunc | endif
+    nmap <buffer> gd <plug>(lsp-definition)
+    nmap <buffer> gs <plug>(lsp-document-symbol-search)
+    nmap <buffer> gS <plug>(lsp-workspace-symbol-search)
+    nmap <buffer> gr <plug>(lsp-references)
+    nmap <buffer> gi <plug>(lsp-implementation)
+    nmap <buffer> gt <plug>(lsp-type-definition)
+    nmap <buffer> <leader>rn <plug>(lsp-rename)
+    nmap <buffer> [g <plug>(lsp-previous-diagnostic)
+    nmap <buffer> ]g <plug>(lsp-next-diagnostic)
+    nmap <buffer> K <plug>(lsp-hover)
+    nnoremap <buffer> <expr><c-f> lsp#scroll(+4)
+    nnoremap <buffer> <expr><c-d> lsp#scroll(-4)
 
+    let g:lsp_format_sync_timeout = 1000
+    autocmd! BufWritePre *.rs,*.go call execute('LspDocumentFormatSync')
+    
+    " refer to doc to add more commands
+endfunction
+
+augroup lsp_install
+    au!
+    " call s:on_lsp_buffer_enabled only for languages that has the server registered.
+    autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
+augroup END
+
+" autocomplete
+inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
 
