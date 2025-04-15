@@ -168,11 +168,11 @@ return {
 
 			-- setup keymaps
 			LazyVim.lsp.on_attach(function(client, buffer)
-				require("lazyvim.plugins.lsp.keymaps").on_attach(client, buffer)
+				require("LazyVim.plugins.lsp.keymaps").on_attach(client, buffer)
 			end)
 
 			LazyVim.lsp.setup()
-			LazyVim.lsp.on_dynamic_capability(require("lazyvim.plugins.lsp.keymaps").on_attach)
+			LazyVim.lsp.on_dynamic_capability(require("LazyVim.plugins.lsp.keymaps").on_attach)
 
 			-- diagnostics signs
 			if vim.fn.has("nvim-0.10.0") == 0 then
@@ -428,6 +428,19 @@ return {
 			},
 		},
 	},
+
+	--Python
+	{
+		"neovim/nvim-lspconfig",
+		opts = function(_, opts)
+			local servers = { "pyright", "basedpyright", "ruff", "ruff_lsp", ruff, lsp }
+			for _, server in ipairs(servers) do
+				opts.servers[server] = opts.servers[server] or {}
+				opts.servers[server].enabled = server == lsp or server == ruff
+			end
+		end,
+	},
+	--
 
 	-- Others
 	"wakatime/vim-wakatime",
