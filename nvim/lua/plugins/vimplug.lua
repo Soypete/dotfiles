@@ -172,7 +172,7 @@ return {
 			end)
 
 			LazyVim.lsp.setup()
-			LazyVim.lsp.on_dynamic_capability(require("LazyVim.plugins.lsp.keymaps").on_attach)
+			-- LazyVim.lsp.on_dynamic_capability(require("LazyVim.plugins.lsp.keymaps").on_attach)
 
 			-- diagnostics signs
 			if vim.fn.has("nvim-0.10.0") == 0 then
