@@ -18,9 +18,11 @@ vim.cmd([[
 -- NerdTree autocmd to close if it's the only window
 vim.api.nvim_create_augroup("nerdtree_close", { clear = true })
 vim.api.nvim_create_autocmd("BufEnter", {
-  group = "nerdtree_close",
-  command = [[if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif]]
+	group = "nerdtree_close",
+	command = [[if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif]],
 })
+
+vim.g.lazyvim_python_ruff = "ruff"
 
 -- Colorscheme and Lightline
 -- vim.cmd("colorscheme nightfly")
