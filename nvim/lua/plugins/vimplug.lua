@@ -58,7 +58,7 @@ return {
 				gopls = {
 					settings = {
 						gopls = {
-							gofumpt = true,
+							-- gofumpt = true,
 							codelenses = {
 								gc_details = false,
 								generate = true,
