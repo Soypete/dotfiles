@@ -9,6 +9,8 @@ vim.opt.number = true
 vim.opt.termguicolors = true
 vim.opt.scrolloff = 20
 vim.opt.clipboard = "unnamed"
+vim.opt.wrap = enabled
+vim.opt.spell = enabled
 
 vim.cmd([[
   autocmd BufNewFile,BufRead *.csv set filetype=csv_semicolon
