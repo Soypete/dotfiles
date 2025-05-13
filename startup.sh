@@ -22,7 +22,6 @@ podman machine start
 touch ~/.secrets
 
 brew install 1password-cli
-echo "export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock" >>./zsh/zsh_profile
 
 rm ~/.bashrc
 ln -s dotfiles/bash/bashrc ~/.bashrc
