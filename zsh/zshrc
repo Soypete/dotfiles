@@ -150,3 +150,12 @@ autoload -Uz compinit && compinit
 complete -o nospace -C /Users/miriahpeterson/.local/bin/terraform terraform
 autoload -U compinit; compinit
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+
+export NVM_DIR="$HOME/dotfiles/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+fpath=(/Users/soypete/.docker/completions $fpath)
+autoload -Uz compinit
+compinit
+# End of Docker CLI completions
