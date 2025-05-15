@@ -9,7 +9,7 @@ export XDG_CONFIG_HOME="$HOME/dotfiles"
  export KUBECONFIG=~/kubeconfig
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
-
-podman machine set --rootful soypete
-podman machine start soypete
+source ~/.config/envman/PATH.env
+# podman machine set --rootful soypete
+# podman machine start soypete
 
