@@ -8,10 +8,9 @@ alias cdmisc="cd ~/code/misc"
 export XDG_CONFIG_HOME="$HOME/dotfiles"
  export KUBECONFIG=~/kubeconfig
 
-eval "$(/opt/homebrew/bin/brew shellenv)"
 source ~/.config/envman/PATH.env
-# podman machine set --rootful soypete
-# podman machine start soypete
+
+PATH=$PATH:$HOME/code/google-cloud-sdk/bin/
 
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
