@@ -1,4 +1,5 @@
 # /bin/bash
+cd $HOME
 
 install ohmyzsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
@@ -11,8 +12,13 @@ webi brew@stable jq@stable gh@stable terraform@stable go@stable python@stable rg
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install ruff@latest
 
+# install neovim
+curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-macos-x86_64.tar.gz
+tar xzf nvim-macos-x86_64.tar.gz
+
+./nvim-macos-x86_64/bin/nvim
+
 #non-webi tools
-brew install neovim
 brew install podman
 brew install fzf
 
@@ -28,7 +34,7 @@ rm ~/.bashrc
 ln -s dotfiles/bash/bashrc ~/.bashrc
 rm ~/.zshrc
 ln -s dotfiles/zsh/zshrc ~/.zshrc
-rm ~/.zshprofile
+rm ~/.zsh_profile
 ln -s dotfiles/zsh/zsh_profile ~/.zsh_profile
 
 source ~/.zshrc
