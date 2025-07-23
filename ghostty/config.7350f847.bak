@@ -32,4 +32,3 @@ palette = 16=#d7827e
 font-size = 24
 macos-non-native-fullscreen = padded-notch
 macos-icon = paper
-keybind = shift+enter=text:\n
