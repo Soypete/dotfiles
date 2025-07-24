@@ -101,7 +101,6 @@ VI_MODE_SET_CURSOR=true
 
 # ssh
  # export SSH_KEY_PATH="~/.ssh/id_ed25519"
- source ~/.iterm2_shell_integration.zsh
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -154,3 +153,4 @@ fpath=(/Users/soypete/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
+eval "$(gh copilot alias -- zsh)"
