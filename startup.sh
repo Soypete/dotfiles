@@ -16,7 +16,7 @@ uv tool install ruff@latest
 curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-macos-x86_64.tar.gz
 tar xzf nvim-macos-x86_64.tar.gz
 
-./nvim-macos-x86_64/bin/nvim
+./nvim-macos-x86_64/bin/nvim --version
 
 #non-webi tools
 brew install podman
