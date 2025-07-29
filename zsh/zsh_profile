@@ -4,9 +4,11 @@ source ~/.secrets
 alias cdgo="cd ~/code/go-projects"
 alias cdml="cd ~/code/ml"
 alias cdmisc="cd ~/code/misc"
+alias sai="cd ~/code/sai"
 
 export XDG_CONFIG_HOME="$HOME/dotfiles"
  export KUBECONFIG=~/kubeconfig
+export PATH='/Users/soypete/.duckdb/cli/latest':$PATH
 
 source ~/.config/envman/PATH.env
 
