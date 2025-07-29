@@ -13,6 +13,20 @@ export PATH='/Users/soypete/.duckdb/cli/latest':$PATH
 source ~/.config/envman/PATH.env
 
 PATH=$PATH:$HOME/code/google-cloud-sdk/bin/
+=======
+# alias cdmisc="cd ~/code/misc"
+
+export XDG_CONFIG_HOME="$HOME/dotfiles"
+export KUBECONFIG=~/kubeconfig
+
+eval "$(~/.local/opt/brew/bin/brew shellenv)"
+
+export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+
+source ~/.config/envman/PATH.env
+
+# PATH=$PATH:$HOME/code/google-cloud-sdk/bin/
+PATH=$PATH:$HOME/nvim-macos-arm64/bin/
 
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
