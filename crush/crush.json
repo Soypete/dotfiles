@@ -1,0 +1,46 @@
+{
+  "$schema": "https://charm.land/crush.json",
+  "lsp": {
+    "go": {
+      "command": "gopls",
+      "env": {
+        "GOTOOLCHAIN": "go1.24.5"
+      }
+    },
+    "typescript": {
+      "command": "typescript-language-server",
+      "args": ["--stdio"]
+    },
+    "nix": {
+      "command": "nil"
+    }
+  },
+  "permissions": {
+    "allowed_tools": [
+      "view",
+      "ls",
+      "grep",
+      "edit",
+      "mcp_context7_get-library-doc"
+    ]
+  },
+  "providers": {
+    "pedro": {
+      "type": "openai",
+      "base_url": "https://pedro-gpu.tail6fbc5.ts.net",
+      "api_key": "$OPENAI_API_KEY",
+      "models": [
+        {
+          "id": "llama-3-instruct",
+          "name": "meta lama3 instruct",
+          "cost_per_1m_in": 0.27,
+          "cost_per_1m_out": 1.1,
+          "cost_per_1m_in_cached": 0.07,
+          "cost_per_1m_out_cached": 1.1,
+          "context_window": 64000,
+          "default_max_tokens": 5000
+        }
+      ]
+    }
+  }
+}
