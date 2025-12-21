@@ -36,6 +36,7 @@ return {
 				"markdown",
 				"markdown_inline",
 			},
+			ignore_install = { "vim" }, -- Explicitly ignore deprecated vim parser
 			highlight = { enable = true },
 			indent = { enable = true },
 		},
