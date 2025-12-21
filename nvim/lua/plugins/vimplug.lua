@@ -31,7 +31,6 @@ return {
 				"terraform",
 				"hcl",
 				"lua",
-				"vim",
 				"vimdoc",
 				"bash",
 				"markdown",
