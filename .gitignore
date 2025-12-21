@@ -5,3 +5,4 @@ containers/*
 k9s/*
 gh/*
 gh-copilot/*
+helm/*

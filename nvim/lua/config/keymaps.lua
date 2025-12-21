@@ -7,6 +7,12 @@ map("n", "<leader>fg", "<cmd>Telescope live_grep<CR>", opts)
 map("n", "<leader>fb", "<cmd>Telescope buffers<CR>", opts)
 map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", opts)
 
+-- LSP with Telescope
+map("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)
+map("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
+map("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
+map("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts)
+
 -- NerdTree
 map("n", "<leader>n", ":NERDTreeFocus<CR>", opts)
 map("n", "<C-n>", ":NERDTree<CR>", opts)

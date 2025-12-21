@@ -9,7 +9,9 @@
     },
     "typescript": {
       "command": "typescript-language-server",
-      "args": ["--stdio"]
+      "args": [
+        "--stdio"
+      ]
     },
     "nix": {
       "command": "nil"
@@ -27,18 +29,27 @@
   "providers": {
     "pedro": {
       "type": "openai",
-      "base_url": "https://pedro-gpu.tail6fbc5.ts.net",
+      "base_url": "http://100.121.229.114:8000",
       "api_key": "$OPENAI_API_KEY",
       "models": [
         {
-          "id": "llama-3-instruct",
+          "id": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
           "name": "meta lama3 instruct",
-          "cost_per_1m_in": 0.27,
-          "cost_per_1m_out": 1.1,
-          "cost_per_1m_in_cached": 0.07,
-          "cost_per_1m_out_cached": 1.1,
           "context_window": 64000,
           "default_max_tokens": 5000
+        }
+      ]
+    },
+    "ollama": {
+      "name": "Ollama",
+      "base_url": "http://localhost:11434/v1/",
+      "type": "openai",
+      "models": [
+        {
+          "name": "Qwen 3 30B",
+          "id": "qwen3:30b",
+          "context_window": 256000,
+          "default_max_tokens": 20000
         }
       ]
     }
