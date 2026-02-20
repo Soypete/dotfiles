@@ -22,6 +22,7 @@ if [ "$ARCH" = "arm64" ]; then
   #non-webi tools
   brew install podman
   brew install fzf
+  brew install fd
   brew install 1password-cli
 else
   curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
@@ -31,6 +32,7 @@ else
   sudo apt update
   sudo apt install podman
   sudo apt install fzf
+  sudo apt install fd-find
 
   curl -sS https://downloads.1password.com/linux/keys/1password.asc |
     sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg &&

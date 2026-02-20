@@ -24,9 +24,9 @@ return {
 		"nvim-treesitter/nvim-treesitter",
 		opts = { ensure_installed = { "go", "gomod", "gowork", "gosum", "terraform", "hcl" } },
 	},
-	"williamboman/mason-lspconfig.nvim",
+	"mason-org/mason-lspconfig.nvim",
 	{
-		"williamboman/mason.nvim",
+		"mason-org/mason.nvim",
 		opts = {
 			ensure_installed = { "gomodifytags", "impl", "goimports", "markdownlint-cli2", "markdown-toc", "tflint" },
 		},
@@ -102,7 +102,6 @@ return {
 				},
 			},
 		},
-<<<<<<< HEAD
 	},
 
 	-- Telescope
@@ -130,8 +129,6 @@ return {
 				end,
 			},
 		},
-	},
-=======
 	},
 
 	{ "nvim-lua/plenary.nvim" },

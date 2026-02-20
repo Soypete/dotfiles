@@ -119,9 +119,9 @@ alias re="source ~/.zshrc"
 alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
-alias drmi="for IMAGE in $(podman images -a -q) 
+alias drmi="for IMAGE in $(docker images -a -q) 
 	do 
-		podman rmi $IMAGE
+    docker rmi $IMAGE
 	done"
 
 
@@ -153,7 +153,6 @@ fpath=(/Users/soypete/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
-<<<<<<< HEAD
 
 # pnpm
 export PNPM_HOME="/Users/soypete/Library/pnpm"
@@ -162,6 +161,5 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
-=======
+#
 eval "$(gh copilot alias -- zsh)"
->>>>>>> miriah-llama-vim
