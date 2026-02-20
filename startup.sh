@@ -27,6 +27,7 @@ if [ "$OS" = "Darwin" && "$ARCH" = "arm64"]; then
   #non-webi tools
   brew install podman
   brew install fzf
+  brew install fd
   brew install 1password-cli
   brew install uv macmon node
 
@@ -56,6 +57,7 @@ else
   sudo apt install vim -y
   sudo apt install podman
   sudo apt install fzf
+  sudo apt install fd-find
 
   curl -sS https://downloads.1password.com/linux/keys/1password.asc |
     sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg &&

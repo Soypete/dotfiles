@@ -122,12 +122,9 @@ alias re="source ~/.zshrc"
 alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
-
-
-
 alias drmi="for IMAGE in $(podman images -a -q) 
 	do 
-		podman rmi $IMAGE
+    docker rmi $IMAGE
 	done"
 
 
@@ -175,3 +172,4 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
