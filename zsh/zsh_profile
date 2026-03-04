@@ -4,7 +4,7 @@ source ~/.secrets
 # alias cdmisc="cd ~/code/misc"
 
 export XDG_CONFIG_HOME="$HOME/dotfiles"
-export KUBECONFIG=~/kubeconfig
+export KUBECONFIG=~/.kube/pedro-ops-config
 
 eval "$(~/.local/opt/brew/bin/brew shellenv)"
 
