@@ -12,15 +12,18 @@
   "lsp": {
     "go": {
       "command": ["gopls"],
+      "extensions": [".go"],
       "env": {
         "GOTOOLCHAIN": "go1.24.5"
       }
     },
     "typescript": {
-      "command": ["typescript-language-server", "--stdio"]
+      "command": ["typescript-language-server", "--stdio"],
+      "extensions": [".ts", ".tsx", ".js", ".jsx"]
     },
     "nix": {
-      "command": ["nil"]
+      "command": ["nil"],
+      "extensions": [".nix"]
     }
   },
   "provider": {
