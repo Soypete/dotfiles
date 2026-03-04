@@ -119,6 +119,29 @@ alias re="source ~/.zshrc"
 alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
+
+# Exo cluster aliases
+alias exo-start="~/dotfiles/exo/scripts/start-cluster.sh"
+alias exo-status="~/dotfiles/exo/scripts/status.sh"
+alias exo-models="~/dotfiles/exo/scripts/models.sh"
+
+# Function to run Claude Code with exo cluster
+exo-claude() {
+  if [ -z "$1" ]; then
+    echo "Usage: exo-claude <model-id>"
+    echo ""
+    echo "Example:"
+    echo "  exo-claude meta-llama/Llama-3.3-70B-Instruct"
+    echo ""
+    echo "Available models:"
+    ~/dotfiles/exo/scripts/models.sh
+    return 1
+  fi
+
+  ANTHROPIC_AUTH_TOKEN="" \
+  ANTHROPIC_BASE_URL="${EXO_API_URL}/v1" \
+  claude --model "$1"
+}
 alias drmi="for IMAGE in $(podman images -a -q) 
 	do 
 		podman rmi $IMAGE

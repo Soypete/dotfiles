@@ -18,3 +18,13 @@ source ~/.config/envman/PATH.env
 
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
+# Exo cluster configuration for Claude Code
+export EXO_API_URL="http://localhost:52415"
+export EXO_LIBP2P_NAMESPACE="soypete-spark-cluster"
+
+# Claude Code with exo backend - use exo-claude function in .zshrc to specify model
+# Or set these for default behavior:
+# export ANTHROPIC_BASE_URL="${EXO_API_URL}/v1"
+# export ANTHROPIC_AUTH_TOKEN=""
+# export ANTHROPIC_MODEL="meta-llama/Llama-3.3-70B-Instruct"  # Example model
