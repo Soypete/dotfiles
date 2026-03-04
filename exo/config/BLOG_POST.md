@@ -312,33 +312,9 @@ For reference: Llama 3.3 70B 4-bit is roughly 40GB. Plan accordingly.
 
 ### 6. OpenCode Requires Explicit Model Definitions
 
-Unlike Claude Code, which queries the API for available models, OpenCode requires you to list every model explicitly in your config along with its context window limits. If a model is not in the `models` object, it will not appear in the model picker.
+OpenCode requires you to list every model explicitly in your config along with its context window limits. If a model is not in the `models` object, it will not appear in the model picker.
 
 Also: the `extensions` array on LSP server entries is required. OpenCode will refuse to start if it is missing, and the validation error message is clear enough, but it is easy to copy a config snippet that omits it.
-
-### 7. OpenCode and Claude Code Use Different API Formats
-
-This is worth knowing before you go down the wrong path. Claude Code speaks Anthropic's API format (`/v1/messages`). OpenCode speaks OpenAI format (`/v1/chat/completions`). Exo only serves OpenAI format. So:
-
-- **OpenCode to exo**: works directly
-- **Claude Code to exo**: needs a translation proxy
-
-If you specifically want Claude Code backed by your cluster, run LiteLLM in front of exo to translate the formats:
-
-```bash
-pip install litellm
-litellm --model openai/mlx-community/Llama-3.3-70B-Instruct-4bit \
-        --api_base http://<SPARK_IP>:52415/v1 \
-        --port 4000
-```
-
-Then:
-
-```bash
-ANTHROPIC_BASE_URL="http://localhost:4000" \
-ANTHROPIC_AUTH_TOKEN="fake" \
-claude --model mlx-community/Llama-3.3-70B-Instruct-4bit
-```
 
 ---
 
