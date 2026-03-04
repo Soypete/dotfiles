@@ -3,7 +3,7 @@
 # This script starts the exo cluster on your local machine
 
 # Set custom namespace to isolate your cluster
-export EXO_LIBP2P_NAMESPACE="soypete-spark-cluster"
+export EXO_LIBP2P_NAMESPACE="soypete_tech"
 
 # Change to exo installation directory
 EXO_DIR="${HOME}/code/exo"

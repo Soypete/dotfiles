@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if exo is running
-if ! curl -s http://localhost:52415/state > /dev/null 2>&1; then
+if ! curl -s "${EXO_API_URL}/state" > /dev/null 2>&1; then
   echo -e "${RED}❌ Exo cluster is not running${NC}"
   echo ""
   echo "Start the cluster first:"
@@ -39,10 +39,10 @@ MODEL="$1"
 
 echo -e "${GREEN}Starting Claude Code with exo cluster${NC}"
 echo -e "Model: ${YELLOW}${MODEL}${NC}"
-echo -e "API: ${YELLOW}http://localhost:52415/v1${NC}"
+echo -e "API: ${YELLOW}${EXO_API_URL}/v1${NC}"
 echo ""
 
 # Run Claude Code with exo backend
 ANTHROPIC_AUTH_TOKEN="" \
-ANTHROPIC_BASE_URL="http://localhost:52415/v1" \
+ANTHROPIC_BASE_URL="${EXO_API_URL}/v1" \
 claude --model "$MODEL"

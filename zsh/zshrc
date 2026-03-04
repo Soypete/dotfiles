@@ -120,7 +120,11 @@ alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
 
-# Exo cluster aliases
+# Exo cluster
+MIRIAHS_MAC_STUDIO="100.71.226.113"
+SPARK_F5EA="100.87.122.109"
+export EXO_API_URL="http://${SPARK_F5EA}:52415"
+
 alias exo-start="~/dotfiles/exo/scripts/start-cluster.sh"
 alias exo-status="~/dotfiles/exo/scripts/status.sh"
 alias exo-models="~/dotfiles/exo/scripts/models.sh"
