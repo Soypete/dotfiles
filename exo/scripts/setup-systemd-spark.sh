@@ -29,9 +29,10 @@ After=network.target tailscaled.service
 [Service]
 User=soypete
 WorkingDirectory=/home/soypete/code/exo
+Environment=HOME=/home/soypete
 Environment=EXO_LIBP2P_NAMESPACE=soypete_tech
 Environment=PATH=/home/soypete/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/soypete/.local/bin/uv run exo
+ExecStart=/bin/bash -lc 'cd /home/soypete/code/exo && uv run exo'
 Restart=always
 RestartSec=5
 

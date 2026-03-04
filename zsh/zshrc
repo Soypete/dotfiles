@@ -126,7 +126,6 @@ SPARK_F5EA="100.87.122.109"
 export EXO_API_URL="http://${SPARK_F5EA}:52415"
 export EXO_API_BASE_URL="${EXO_API_URL}/v1"
 
-alias exo-start="~/dotfiles/exo/scripts/start-cluster.sh"
 alias exo-status="~/dotfiles/exo/scripts/status.sh"
 alias exo-models="~/dotfiles/exo/scripts/models.sh"
 
