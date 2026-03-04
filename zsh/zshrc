@@ -181,7 +181,9 @@ fpath=(/Users/soypete/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
-eval "$(gh copilot alias -- zsh)"
+if gh extension list 2>/dev/null | grep -q copilot; then
+  eval "$(gh copilot alias -- zsh)"
+fi
 
 # opencode
 export PATH=/Users/miriahpeterson/.opencode/bin:$PATH

@@ -6,7 +6,11 @@ source ~/.secrets
 export XDG_CONFIG_HOME="$HOME/dotfiles"
 export KUBECONFIG=~/kubeconfig
 
-eval "$(~/.local/opt/brew/bin/brew shellenv)"
+if [ -f /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -f ~/.local/opt/brew/bin/brew ]; then
+  eval "$(~/.local/opt/brew/bin/brew shellenv)"
+fi
 
 export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
 export OPENAI_API_KEY="TEST"
