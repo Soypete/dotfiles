@@ -1,0 +1,54 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "model": "exo/mlx-community/GLM-4.7-8bit-gs32",
+  "instructions": ["CLAUDE.md"],
+  "formatter": {
+    "goimports": {
+      "command": ["goimports", "-w", "$FILE"],
+      "extensions": [".go"]
+    }
+  },
+  "lsp": {
+    "go": {
+      "command": ["gopls"],
+      "env": {
+        "GOTOOLCHAIN": "go1.24.5"
+      }
+    },
+    "typescript": {
+      "command": ["typescript-language-server", "--stdio"]
+    },
+    "nix": {
+      "command": ["nil"]
+    }
+  },
+  "provider": {
+    "exo": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Exo Cluster",
+      "options": {
+        "baseURL": "{env:EXO_API_BASE_URL}",
+        "apiKey": "fake"
+      },
+      "models": {
+        "mlx-community/GLM-4.7-8bit-gs32": {
+          "name": "GLM-4.7 8bit (largest)",
+          "limit": { "context": 128000, "output": 8192 }
+        },
+        "mlx-community/GLM-4.7-Flash-8bit": {
+          "name": "GLM-4.7 Flash 8bit",
+          "limit": { "context": 128000, "output": 8192 }
+        },
+        "mlx-community/Llama-3.3-70B-Instruct-4bit": {
+          "name": "Llama 3.3 70B 4bit",
+          "limit": { "context": 128000, "output": 8192 }
+        },
+        "mlx-community/Qwen3-30B-A3B-4bit": {
+          "name": "Qwen3 30B 4bit",
+          "limit": { "context": 32000, "output": 8192 }
+        }
+      }
+    }
+  }
+}

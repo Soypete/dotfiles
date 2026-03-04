@@ -124,6 +124,7 @@ alias python="python3"
 MIRIAHS_MAC_STUDIO="100.71.226.113"
 SPARK_F5EA="100.87.122.109"
 export EXO_API_URL="http://${SPARK_F5EA}:52415"
+export EXO_API_BASE_URL="${EXO_API_URL}/v1"
 
 alias exo-start="~/dotfiles/exo/scripts/start-cluster.sh"
 alias exo-status="~/dotfiles/exo/scripts/status.sh"
@@ -181,3 +182,6 @@ autoload -Uz compinit
 compinit
 # End of Docker CLI completions
 eval "$(gh copilot alias -- zsh)"
+
+# opencode
+export PATH=/Users/miriahpeterson/.opencode/bin:$PATH
