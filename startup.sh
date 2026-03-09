@@ -85,6 +85,9 @@ ln -s dotfiles/zsh/zshrc ~/.zshrc
 rm ~/.zsh_profile
 ln -s dotfiles/zsh/zsh_profile ~/.zsh_profile
 
+mkdir -p ~/.claude
+ln -s dotfiles/claude/settings.json ~/.claude/settings.json
+
 source ~/.zshrc
 
 # I like to put all my code stuff here

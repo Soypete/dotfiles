@@ -8,3 +8,5 @@ gh/*
 gh-copilot/*
 helm/*
 op/
+configstore/*
+gwcli/credentials.json
