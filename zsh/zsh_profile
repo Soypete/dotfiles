@@ -6,7 +6,11 @@ source ~/.secrets
 export XDG_CONFIG_HOME="$HOME/dotfiles"
 export KUBECONFIG=~/.kube/pedro-ops-config
 
-eval "$(~/.local/opt/brew/bin/brew shellenv)"
+if [ -f /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -f ~/.local/opt/brew/bin/brew ]; then
+  eval "$(~/.local/opt/brew/bin/brew shellenv)"
+fi
 
 export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
 export OPENAI_API_KEY="TEST"
@@ -18,3 +22,12 @@ source ~/.config/envman/PATH.env
 
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
+# Exo cluster configuration for Claude Code
+export EXO_LIBP2P_NAMESPACE="soypete_tech"
+
+# Claude Code with exo backend - use exo-claude function in .zshrc to specify model
+# Or set these for default behavior:
+# export ANTHROPIC_BASE_URL="${EXO_API_URL}/v1"
+# export ANTHROPIC_AUTH_TOKEN=""
+# export ANTHROPIC_MODEL="meta-llama/Llama-3.3-70B-Instruct"  # Example model

@@ -122,6 +122,33 @@ alias re="source ~/.zshrc"
 alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
+
+# Exo cluster
+MIRIAHS_MAC_STUDIO="100.71.226.113"
+SPARK_F5EA="100.87.122.109"
+export EXO_API_URL="http://${SPARK_F5EA}:52415"
+export EXO_API_BASE_URL="${EXO_API_URL}/v1"
+
+alias exo-status="~/dotfiles/exo/scripts/status.sh"
+alias exo-models="~/dotfiles/exo/scripts/models.sh"
+
+# Function to run Claude Code with exo cluster
+exo-claude() {
+  if [ -z "$1" ]; then
+    echo "Usage: exo-claude <model-id>"
+    echo ""
+    echo "Example:"
+    echo "  exo-claude meta-llama/Llama-3.3-70B-Instruct"
+    echo ""
+    echo "Available models:"
+    ~/dotfiles/exo/scripts/models.sh
+    return 1
+  fi
+
+  ANTHROPIC_AUTH_TOKEN="" \
+  ANTHROPIC_BASE_URL="${EXO_API_URL}/v1" \
+  claude --model "$1"
+}
 alias drmi="for IMAGE in $(podman images -a -q) 
 	do 
 		podman rmi $IMAGE
@@ -156,4 +183,9 @@ fpath=(/Users/soypete/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
-eval "$(gh copilot alias -- zsh)"
+if gh extension list 2>/dev/null | grep -q copilot; then
+  eval "$(gh copilot alias -- zsh)"
+fi
+
+# opencode
+export PATH=$HOME/.opencode/bin:$PATH

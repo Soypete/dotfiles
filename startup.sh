@@ -28,6 +28,7 @@ if [ "$OS" = "Darwin" && "$ARCH" = "arm64"]; then
   brew install podman
   brew install fzf
   brew install 1password-cli
+  brew install uv macmon node
 
 elif [ "$OS" = "Linux" && "$ARCH" = "aarm64"]; then 
   sudo apt update
