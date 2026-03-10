@@ -310,7 +310,29 @@ uv run exo download mlx-community/Llama-3.3-70B-Instruct-4bit
 
 For reference: Llama 3.3 70B 4-bit is roughly 40GB. Plan accordingly.
 
-### 6. OpenCode Requires Explicit Model Definitions
+### 6. Keep Exo Updated on All Nodes
+
+Exo is under active development and the internal schemas change between versions. If your Linux nodes fall behind the version running on your Mac (via EXO.app), you will see Pydantic validation errors in the logs and bizarre behavior in the dashboard — in my case, the topology showed **13,538 phantom nodes** when only 3 physical machines existed.
+
+The fix is simple: update exo on every node whenever you update the app.
+
+```bash
+# On each Linux node:
+cd ~/code/exo && git pull origin main
+cd dashboard && npm install && npm run build && cd ..
+sudo systemctl restart exo
+```
+
+Unlike the Mac app, the Linux nodes do not auto-update. There is no built-in version check or update mechanism for systemd-managed installs — you have to `git pull` manually. If you start seeing weird dashboard behavior (duplicate nodes, stale topology, validation errors in `journalctl -u exo`), updating is the first thing to try.
+
+If stale data persists after updating, clear the event logs on all nodes and restart:
+
+```bash
+rm -rf ~/.local/share/exo/event_log/
+sudo systemctl restart exo
+```
+
+### 7. OpenCode Requires Explicit Model Definitions
 
 OpenCode requires you to list every model explicitly in your config along with its context window limits. If a model is not in the `models` object, it will not appear in the model picker.
 
