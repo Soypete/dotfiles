@@ -9,8 +9,8 @@ vim.opt.number = true
 vim.opt.termguicolors = true
 vim.opt.scrolloff = 20
 vim.opt.clipboard = "unnamed"
-vim.opt.wrap = enabled
-vim.opt.spell = enabled
+vim.opt.wrap = true
+vim.opt.spell = true
 
 vim.cmd([[
   autocmd BufNewFile,BufRead *.csv set filetype=csv_semicolon
@@ -27,16 +27,16 @@ vim.api.nvim_create_autocmd("BufEnter", {
 vim.g.lazyvim_python_ruff = "ruff"
 
 -- Colorscheme and Lightline
--- vim.cmd("colorscheme nightfly")
--- vim.g.lightline = { colorscheme = "nightfly" }
--- vim.g.nightflyCursorColor = 1
+vim.cmd("colorscheme nightfly")
+vim.g.lightline = { colorscheme = "nightfly" }
+vim.g.nightflyCursorColor = 1
 --
 -- Run gofmt + goimports on save
 local format_sync_grp = vim.api.nvim_create_augroup("goimports", {})
 vim.api.nvim_create_autocmd("BufWritePre", {
 	pattern = "*.go",
 	callback = function()
-		require("go.format").goimports()
+		vim.lsp.buf.format()
 	end,
 	group = format_sync_grp,
 })
