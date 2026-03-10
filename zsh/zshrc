@@ -185,4 +185,4 @@ if gh extension list 2>/dev/null | grep -q copilot; then
 fi
 
 # opencode
-export PATH=/Users/miriahpeterson/.opencode/bin:$PATH
+export PATH=$HOME/.opencode/bin:$PATH
