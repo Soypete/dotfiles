@@ -132,6 +132,20 @@ exo-claude mlx-community/Llama-3.3-70B-Instruct-4bit # run Claude Code
 - Nodes must be on the same LAN — Tailscale cannot be used for peer discovery
 - Ubiquiti: set Gateway mDNS Proxy Service Scope to **"All"**
 
+**Duplicate/phantom nodes or other weird dashboard behavior:**
+- Update exo on all nodes — version mismatches cause Pydantic schema errors, crash loops, and duplicate node registrations
+  ```bash
+  # On each Spark:
+  cd ~/code/exo && git pull origin main
+  cd dashboard && npm install && npm run build && cd ..
+  sudo systemctl restart exo
+  ```
+- Also update EXO.app on Mac Studio (Check for Updates in the app menu)
+- If stale data persists after updating, clear event logs on all nodes and restart:
+  ```bash
+  rm -rf ~/.local/share/exo/event_log/
+  ```
+
 **Systemd service crashes on start:**
 - Ensure `Environment=HOME=/home/soypete` is in the service file
 - Check logs: `sudo journalctl -u exo -f`
