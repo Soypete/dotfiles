@@ -1,38 +1,34 @@
-# Running OpenCode on Your Homelab ARM Cluster with Exo
+# I Tried to Run a Distributed AI Cluster on DGX Sparks. Here Is What Actually Happened.
 
-A few people asked in the comments on my recent podcast video how I'm running an AI coding assistant on my homelab without paying for API access. This post is the full answer — actual commands, real gotchas, and everything you need to replicate it.
+The premise was great: pool my Mac Studio and two NVIDIA DGX Spark nodes into a single inference cluster using [exo](https://github.com/exo-explore/exo), point [OpenCode](https://opencode.ai) at it, and have a fully local AI coding assistant running on hardware I already own. No API bills. No data leaving my network.
 
-The short version: I'm using [exo](https://github.com/exo-explore/exo) to pool inference across two ARM nodes, then pointing [OpenCode](https://opencode.ai) at the cluster's OpenAI-compatible endpoint. It took some wrestling to get right, but once it clicked, it works beautifully.
+Some of it worked. Some of it was marketing I believed too early. Here is the honest account.
 
 ---
 
 ## The Hardware
 
-Here is what I am running:
-
 | Machine | Role | OS |
-|---------|------|----|
-| Mac Studio | Client (runs OpenCode) | macOS |
-| Spark 1 (aarch64, NVIDIA) | Compute Node | Ubuntu Linux |
-| Spark 2 (aarch64, NVIDIA) | Compute Node | Ubuntu Linux |
+|---------|------|-----|
+| Mac Studio (M3 Ultra) | Client + Compute | macOS (EXO.app) |
+| DGX Spark f5ea (aarch64, NVIDIA) | Intended Compute Node | Ubuntu Linux |
+| DGX Spark 771e (aarch64, NVIDIA) | Intended Compute Node | Ubuntu Linux |
 
-All three are hardwired to a Ubiquiti switch. Tailscale handles remote access. The two Spark nodes auto-discover each other via mDNS on the LAN — Tailscale cannot do mDNS since it uses /32 addresses with no broadcast domain, so the nodes must be on the same physical subnet. (More on that in the gotchas section, because it will bite you if you skip it.)
+All three are hardwired to a Ubiquiti switch. Tailscale handles remote access.
 
----
+The goal was to run a 70B model split across all three machines. EXO Labs published an article describing exactly this kind of disaggregated prefill/decode setup — prefill (compute-bound) on the NVIDIA nodes, decode (memory-bound) on the Mac Studio. It sounded like it was already shipping.
 
-## Why Exo?
-
-The problem with running large models locally is that a single machine rarely has enough VRAM. Exo solves this by letting you pool compute across multiple machines so your cluster acts as a single inference backend. It exposes an OpenAI-compatible API on port `52415`, which means anything that speaks OpenAI format — including OpenCode — just works with it out of the box.
-
-On Apple Silicon, exo uses MLX-format models from [mlx-community](https://huggingface.co/mlx-community) on Hugging Face. On Linux with NVIDIA hardware, it uses CUDA. My Spark nodes are ARM with NVIDIA GPUs, so they run the CUDA path.
-
-The result: a 70B parameter model, quantized to 4-bit, split across two nodes, running entirely on hardware I already own.
+It is not. Not in the released version. More on that in a minute.
 
 ---
 
-## Step 1: Install Exo on Each Linux Node
+## Setting Up Exo — The Parts That Do Work
 
-SSH into each Spark node and run the following. You'll do this on both nodes.
+Even though the DGX Spark story fell apart, getting the cluster running on the Mac Studio side was genuinely useful and worth documenting. Here is what the working setup looks like.
+
+### Step 1: Install Exo on Each Linux Node
+
+SSH into each Spark and run:
 
 ```bash
 # Install uv (Python package runner)
@@ -49,24 +45,22 @@ git clone https://github.com/exo-explore/exo ~/code/exo
 cd ~/code/exo/dashboard && npm install && npm run build && cd ..
 ```
 
-## Step 2: Set the Cluster Namespace
+### Step 2: Set the Cluster Namespace
 
-This step is easy to overlook and painful to debug. Every node must use the **same namespace** or they will not discover each other. Pick a name, use it everywhere, and do not change it later.
+Every node must use the **same namespace** or they will silently ignore each other. No error. No warning. They just do not connect.
 
 ```bash
 echo 'export EXO_LIBP2P_NAMESPACE="my_cluster"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-If your nodes are not seeing each other, a mismatched namespace is almost always the cause. Verify it on every node with:
+Verify it matches on every node:
 
 ```bash
-echo $EXO_LIBP2P_NAMESPACE  # must match on every node
+echo $EXO_LIBP2P_NAMESPACE
 ```
 
-## Step 3: Run Exo as a Systemd Service
-
-Running it manually with `nohup` works for a quick test, but it does not survive reboots. Set up a proper systemd service from the start and save yourself the trouble later.
+### Step 3: Run Exo as a Systemd Service
 
 ```bash
 sudo tee /etc/systemd/system/exo.service << 'EOF'
@@ -80,7 +74,7 @@ WorkingDirectory=/home/YOUR_USER/code/exo
 Environment=HOME=/home/YOUR_USER
 Environment=EXO_LIBP2P_NAMESPACE=my_cluster
 Environment=PATH=/home/YOUR_USER/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/YOUR_USER/.local/bin/uv run exo
+ExecStart=/bin/bash -lc 'cd /home/YOUR_USER/code/exo && uv run exo'
 Restart=always
 RestartSec=5
 
@@ -93,54 +87,116 @@ sudo systemctl enable exo
 sudo systemctl start exo
 ```
 
-**One gotcha worth calling out now:** you must set `Environment=HOME=/home/YOUR_USER`. Without it, systemd's minimal environment breaks pyo3 (the Rust/Python bridge exo uses) and the service crashes immediately with:
+**Critical:** you must set `Environment=HOME=/home/YOUR_USER`. Without it, systemd's minimal environment breaks pyo3 (the Rust/Python bridge exo uses) and the service crashes immediately with:
 
 ```
 assertion `left != right` failed: The Python interpreter is not initialized
 ```
 
-If that error is not enough to explain what went wrong, you are in for a confusing afternoon. Set `HOME` explicitly and move on.
-
-If you are still seeing crashes, switch to a login shell in the service definition:
+If you still see crashes, switch to a login shell:
 
 ```ini
 ExecStart=/bin/bash -lc 'cd /home/YOUR_USER/code/exo && uv run exo'
 ```
 
-The `-l` flag sources your full login environment, which usually resolves any remaining Python path issues.
+The `-l` flag sources your full login environment and resolves whatever the minimal systemd environment was missing.
 
-Check that everything is running:
+### Step 4: Set the Namespace in the Service File Too
 
-```bash
-sudo systemctl status exo
-sudo journalctl -u exo -f
+This is the part people miss. If you set `EXO_LIBP2P_NAMESPACE` in `.bashrc` but not in the systemd service file, the service runs with an empty namespace and will not join the cluster. Your terminal sessions look fine. The service is silently isolated.
+
+```ini
+Environment=EXO_LIBP2P_NAMESPACE=my_cluster
 ```
 
-## Step 4: Verify the Cluster
+### Step 5: Tailscale IPs Do Not Work for Node Discovery
 
-Once both nodes are running, confirm they have found each other. From any machine on your network or Tailnet:
+Exo uses libp2p mDNS for peer discovery. mDNS requires a broadcast domain. Tailscale uses point-to-point /32 addresses and does not have one. Your compute nodes must be on the same physical LAN subnet.
+
+Tailscale is useful for *clients* connecting to the cluster API from outside the LAN. It is not useful for the nodes finding each other.
+
+One more wrinkle: if you are using a Ubiquiti Dream Machine, mDNS proxying can block libp2p traffic even on the same subnet. Fix it by setting the Gateway mDNS Proxy Service Scope to **"All"** in your Ubiquiti settings.
+
+### Step 6: Version Mismatch Will Crash Exo
+
+If your Mac Studio is running the EXO desktop app and your Spark nodes are running exo from source, they must be on the **same version**. A mismatch produces pydantic validation errors in the logs:
+
+```
+ValidationError: NodeDownloadProgress
+  Extra inputs are not permitted
+  Field required [type=missing]
+```
+
+The service crashes and restarts in a loop. Fix it by checking out the exact version tag that matches the EXO desktop app on your Mac:
+
+```bash
+ssh user@<SPARK_IP>
+cd ~/code/exo
+git fetch --tags
+git tag | sort -V | tail -20
+
+# Check out the matching version
+git checkout v0.x.x
+
+# Rebuild the dashboard
+cd dashboard && npm install && npm run build && cd ..
+
+sudo systemctl restart exo
+```
+
+Find the EXO.app version under **About EXO** on the Mac Studio.
+
+### Step 7: Verify the Cluster
 
 ```bash
 curl -s http://<SPARK_IP>:52415/state | jq '.topology'
-```
-
-You should see all your nodes listed. Then check which models are available:
-
-```bash
 curl -s http://<SPARK_IP>:52415/v1/models | jq '.data[].id'
 ```
 
-Models auto-download from Hugging Face on first use, but I recommend triggering downloads manually before your first OpenCode session (covered in Step 7). Nothing kills momentum like waiting 40 minutes for a 70B model to download mid-conversation.
+---
 
-## Step 5: Set Up Tailscale Access
+## Where It Falls Apart: No CUDA Engine
 
-Exo binds to `0.0.0.0:52415`, which means it is reachable on all interfaces, including your Tailscale interface. From any device on your Tailnet:
+Here is where the dream hits the wall.
 
-```bash
-curl -s http://<TAILSCALE_IP>:52415/state | jq '.topology'
+After all of the above — namespace alignment, systemd fixes, version pinning, mDNS configuration — I finally had the cluster running and tried to load a model on the DGX Sparks. The error:
+
+```
+RuntimeError: QMM NYI
 ```
 
-Add these to your `~/.zshrc` or `~/.bashrc` on your client machine (the Mac Studio, in my case):
+QMM is quantized matrix multiply. NYI means "not yet implemented."
+
+I dug into the exo source to understand why. The inference engines directory:
+
+```
+~/code/exo/src/exo/worker/engines/
+├── image/
+├── mlx/
+└── __init__.py
+```
+
+There is no CUDA engine. In the current released version of exo (v1.0.68 at time of writing), the only inference backend is MLX.
+
+[MLX](https://github.com/ml-explore/mlx) is Apple's array framework for machine learning. It does have a Linux/CUDA backend you can install:
+
+```bash
+pip install mlx[cuda]
+```
+
+But the quantized operations that `mlx-community` 4-bit models depend on — the QMM ops — are not implemented in the CUDA path. So even if you install the CUDA backend, loading a quantized model on NVIDIA hardware fails with that same error.
+
+**The `mlx-community` models on Hugging Face are Apple Silicon only.** Exo's released version only has an MLX inference backend. NVIDIA hardware cannot currently participate in inference.
+
+The EXO Labs article about DGX Spark + Mac Studio disaggregated prefill/decode is describing a future or internal capability. It is not in the public release. I believe it too early.
+
+---
+
+## What Does Work: Mac Studio + OpenCode
+
+The cluster running on the Mac Studio alone works well. Exo handles the OpenAI-compatible API on port `52415`, and OpenCode connects to it with a custom provider config.
+
+Set in `~/.zshrc`:
 
 ```bash
 SPARK_NODE="<YOUR_SPARK_TAILSCALE_IP>"
@@ -148,17 +204,13 @@ export EXO_API_URL="http://${SPARK_NODE}:52415"
 export EXO_API_BASE_URL="${EXO_API_URL}/v1"
 ```
 
-Using an environment variable for the base URL is intentional — it lets you swap which node you point at without touching the OpenCode config file.
-
-## Step 6: Configure OpenCode
-
-OpenCode stores its config at `~/.config/opencode/opencode.json` (or `$XDG_CONFIG_HOME/opencode/opencode.json` if you have that set). Create it with the exo cluster as a custom OpenAI-compatible provider:
+OpenCode config at `~/.config/opencode/opencode.json`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  "model": "exo/mlx-community/Llama-3.3-70B-Instruct-4bit",
+  "model": "exo/mlx-community/GLM-4.7-Flash-8bit",
   "provider": {
     "exo": {
       "npm": "@ai-sdk/openai-compatible",
@@ -168,16 +220,16 @@ OpenCode stores its config at `~/.config/opencode/opencode.json` (or `$XDG_CONFI
         "apiKey": "fake"
       },
       "models": {
-        "mlx-community/Llama-3.3-70B-Instruct-4bit": {
-          "name": "Llama 3.3 70B 4bit",
+        "mlx-community/GLM-4.7-8bit-gs32": {
+          "name": "GLM-4.7 8bit (largest)",
           "limit": { "context": 128000, "output": 8192 }
         },
-        "mlx-community/Qwen3-30B-A3B-4bit": {
-          "name": "Qwen3 30B 4bit",
-          "limit": { "context": 32000, "output": 8192 }
+        "mlx-community/GLM-4.7-Flash-8bit": {
+          "name": "GLM-4.7 Flash 8bit",
+          "limit": { "context": 128000, "output": 8192 }
         },
-        "mlx-community/GLM-4.7-8bit-gs32": {
-          "name": "GLM-4.7 8bit",
+        "mlx-community/Llama-3.3-70B-Instruct-4bit": {
+          "name": "Llama 3.3 70B 4bit",
           "limit": { "context": 128000, "output": 8192 }
         }
       }
@@ -192,115 +244,18 @@ OpenCode stores its config at `~/.config/opencode/opencode.json` (or `$XDG_CONFI
       "command": ["typescript-language-server", "--stdio"],
       "extensions": [".ts", ".tsx", ".js", ".jsx"]
     }
-  },
-  "formatter": {
-    "goimports": {
-      "command": ["goimports", "-w", "$FILE"],
-      "extensions": [".go"]
-    }
   }
 }
 ```
 
-A few things in here that are not obvious:
+A few things worth calling out:
 
-- `"npm": "@ai-sdk/openai-compatible"` tells OpenCode to use the OpenAI-compatible provider adapter. This is the key that makes it work with exo.
-- `"apiKey": "fake"` — exo does not require authentication, but the field is required by the provider adapter. Any non-empty string works.
-- `{env:EXO_API_BASE_URL}` pulls the URL from your shell environment at runtime, so you can change nodes without editing this file.
-- You must define models explicitly. OpenCode does not auto-discover them from the exo API, unlike some other tools.
-- The `extensions` array on each LSP server entry is **required**. OpenCode will refuse to start and throw a config validation error if it is missing.
-
-## Step 7: Download a Model and Run
-
-Before starting OpenCode, trigger the model download manually on your Spark node. This avoids a long silent wait (or a timeout) the first time OpenCode tries to use it.
-
-```bash
-ssh YOUR_USER@<SPARK_IP>
-cd ~/code/exo
-uv run exo download mlx-community/Llama-3.3-70B-Instruct-4bit
-```
-
-A 70B 4-bit model is roughly 40GB, so this takes a while. If you want to test the full pipeline first before committing to that download, `Llama-3.2-3B-Instruct-4bit` is about 2GB and will tell you quickly whether everything is wired up correctly.
-
-Once the download finishes, back on your client machine:
-
-```bash
-source ~/.zshrc  # pick up EXO_API_BASE_URL
-opencode
-```
-
-OpenCode connects to the cluster and uses whatever model you set as the default in your config.
-
----
-
-## Real Gotchas — Things That Will Bite You
-
-I could have buried these at the end with a sentence like "and that is all there is to it," but that would be dishonest. Here is what actually cost me time.
-
-### 1. Tailscale IPs Do Not Work for Node Discovery
-
-This one burned me for longer than I want to admit. Exo uses libp2p mDNS for auto-discovery between nodes. mDNS requires a broadcast domain — Tailscale uses point-to-point /32 addresses and does not have one. So **cluster nodes cannot discover each other over Tailscale**.
-
-Your compute nodes must be on the same physical LAN subnet (e.g., `192.168.1.x`). Tailscale is only useful for *clients* connecting to the cluster API from outside the LAN — not for the nodes finding each other.
-
-One more wrinkle: if you are using a Ubiquiti Dream Machine or similar router, mDNS proxying can block libp2p traffic even on the same subnet. Fix it by setting the Gateway mDNS Proxy Service Scope to **"All"** in your Ubiquiti settings.
-
-### 2. The Namespace Must Match Exactly on Every Node
-
-Exo uses a namespace to isolate clusters from each other. Nodes with different namespaces simply ignore each other — no error, no warning, they just do not connect. This is by design, but it makes debugging confusing because silence is not a helpful error message.
-
-Set the namespace in `.bashrc` on every Linux node:
-
-```bash
-echo 'export EXO_LIBP2P_NAMESPACE="my_cluster"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-And make sure your systemd service also has it — this is the part people miss:
-
-```ini
-Environment=EXO_LIBP2P_NAMESPACE=my_cluster
-```
-
-If you set it in `.bashrc` but not in the service file, the service runs with an empty namespace and will not join the cluster. Your terminal sessions look fine; the service is silently isolated.
-
-### 3. Spark 2 Has No Direct External Access
-
-In my setup, Spark 2 is physically coupled to Spark 1 — it routes all internet traffic through Spark 1 and does not have its own Tailscale connectivity. That means:
-
-- You cannot SSH directly to Spark 2 from outside the LAN. You hop through Spark 1 first.
-- Model downloads on Spark 2 go through Spark 1's internet connection.
-- Spark 2 is LAN-reachable (`192.168.1.x`) but not Tailscale-reachable.
-
-```bash
-# Mac → Spark 1
-ssh user@<SPARK_1_TAILSCALE_IP>
-
-# Spark 1 → Spark 2 (LAN only)
-ssh user@192.168.1.84
-```
-
-If your setup is similar, keep this in mind for model downloads. If Spark 2 cannot reach Hugging Face directly, download on Spark 1 and let the cluster share it.
-
-### 4. Systemd Crashes Without HOME Set
-
-Systemd runs services with a minimal environment — no `HOME`, no shell config, no PATH beyond the defaults. Exo uses pyo3 (a Rust/Python bridge) which needs a working Python environment that depends on `HOME` being set. Without it, you get this:
-
-```
-assertion `left != right` failed: The Python interpreter is not initialized
-```
-
-Fix: add `Environment=HOME=/home/YOUR_USER` to the `[Service]` section. If you are still seeing failures, switch to a login shell:
-
-```ini
-ExecStart=/bin/bash -lc 'cd /home/YOUR_USER/code/exo && uv run exo'
-```
-
-The `-l` flag sources your full login environment and usually resolves whatever the minimal environment was missing.
-
-### 5. Download Models Before Your First Session
-
-Exo downloads models from Hugging Face on first use. If you launch OpenCode immediately after pointing it at a new model, it will either time out or return "No instance found for model." Pre-download to avoid the frustration:
+- `"npm": "@ai-sdk/openai-compatible"` is what makes the custom provider work. Without it, OpenCode does not know how to speak to exo.
+- `"apiKey": "fake"` — exo requires no authentication but the field cannot be empty.
+- `{env:EXO_API_BASE_URL}` pulls from your shell environment at runtime.
+- You must define models explicitly. OpenCode does not auto-discover them.
+- The `extensions` array on each LSP entry is required. OpenCode will refuse to start without it.
+- Pre-download models before your first session. Exo pulls from Hugging Face on first use. A 70B 4-bit model is ~40GB. Nothing kills momentum like a 40-minute download mid-conversation.
 
 ```bash
 ssh user@<SPARK_IP>
@@ -308,20 +263,16 @@ cd ~/code/exo
 uv run exo download mlx-community/Llama-3.3-70B-Instruct-4bit
 ```
 
-For reference: Llama 3.3 70B 4-bit is roughly 40GB. Plan accordingly.
-
-### 6. OpenCode Requires Explicit Model Definitions
-
-OpenCode requires you to list every model explicitly in your config along with its context window limits. If a model is not in the `models` object, it will not appear in the model picker.
-
-Also: the `extensions` array on LSP server entries is required. OpenCode will refuse to start if it is missing, and the validation error message is clear enough, but it is easy to copy a config snippet that omits it.
-
 ---
 
-## The Result
+## The Conclusion
 
-Once this is all running, you have a fully local AI coding assistant backed by your own cluster — accessible from anywhere on your Tailnet, no API keys, no usage limits, no data leaving your network.
+The Mac Studio setup works. OpenCode talks to exo, exo runs MLX models, and I have a local AI coding assistant with no API keys and no usage limits. That part of the goal is achieved.
 
-The performance is not going to match a commercial API for raw speed, but it is fast enough to be genuinely useful, and the economics are different: the hardware cost is a one-time expense and the marginal cost of each query is zero.
+The DGX Spark nodes are currently decorative as far as exo inference is concerned. They run the service, they appear in the cluster topology, but they cannot execute any inference because there is no CUDA engine in the released version.
 
-The full dotfiles config, including all the scripts referenced here, is on GitHub: [Soypete/dotfiles](https://github.com/Soypete/dotfiles). If something in this post is unclear or out of date, that is the best place to open an issue.
+When CUDA support lands in exo, this setup becomes genuinely powerful. The EXO Labs team is clearly building toward disaggregated prefill/decode across heterogeneous hardware — the architecture makes sense and the article they published describes a real thing. It is just not released yet.
+
+In the meantime, I will expand the cluster the right way: used Mac Minis. When they hit $100 a piece, I am building a rack. Until then, the Mac Studio carries the load.
+
+The full dotfiles config for this setup is on GitHub: [Soypete/dotfiles](https://github.com/Soypete/dotfiles).
