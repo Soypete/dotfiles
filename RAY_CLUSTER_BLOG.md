@@ -127,35 +127,21 @@ docker exec $VLLM_CONTAINER ray status
 
 Expected: 2 nodes, GPU resources available.
 
-### Step 7: Download and Serve MiniMax-M2.5-AWQ
+### Step 7: Download and Serve GLM-4.5-Air
 
 Login to Hugging Face inside the container, then download and serve the model:
 
 ```bash
 docker exec -it $VLLM_CONTAINER /bin/bash -c 'huggingface-cli login'
 
-# Download the model (~130GB)
-docker exec -it $VLLM_CONTAINER /bin/bash -c 'huggingface-cli download QuantTrio/MiniMax-M2.5-AWQ'
+# Download the model
+docker exec -it $VLLM_CONTAINER /bin/bash -c 'hf download zai-org/GLM-4.5-Air'
 
 # Launch with tensor parallelism across both nodes
-docker exec -it $VLLM_CONTAINER /bin/bash -c '
-  export VLLM_USE_FLASHINFER_MOE_FP16=1
-  export VLLM_USE_FLASHINFER_SAMPLER=0
-  export OMP_NUM_THREADS=4
-
-  vllm serve QuantTrio/MiniMax-M2.5-AWQ \
-    --tensor-parallel-size 2 \
-    --enable-expert-parallel \
-    --max_model_len 32768 \
-    --max-num-seqs 32 \
-    --swap-space 16 \
-    --gpu-memory-utilization 0.9 \
-    --trust-remote-code \
-    --host 0.0.0.0 \
-    --port 8000'
+docker exec -it $VLLM_CONTAINER bash -c 'SAFETENSORS_FAST_GPU=1 vllm serve zai-org/GLM-4.5-Air --trust-remote-code --tensor-parallel-size 2 --distributed-executor-backend ray --max-model-len 32768 --enable-auto-tool-choice --tool-call-parser glm45 --reasoning-parser glm45 --compilation-config "{\"cudagraph_mode\": \"PIECEWISE\"}" --host 0.0.0.0 --port 8000'
 ```
 
-> **Note on model choice**: MiniMax-M2.5 is a 456B MoE model. The AWQ 4-bit quantized version from QuantTrio comes in at ~130GB — fits comfortably in the 222GB combined memory, leaving ~90GB for KV cache and inference overhead. Full precision and GGUF versions don't fit.
+> **Note on model choice**: MiniMax-M2.5-AWQ uses an architecture (`TransformersForCausalLM`) not natively supported by vLLM. GLM-4.5-Air is natively supported, loads cleanly across both nodes (~99.6GB), and leaves ~120GB for KV cache. The `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'` flag is required to avoid CUDA launch failures on Grace Blackwell (GB10).
 
 ### Step 8: Test It
 
