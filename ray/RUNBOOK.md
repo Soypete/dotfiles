@@ -190,3 +190,9 @@ bash /tmp/serve.sh'
 | `zai-org/GLM-4.7-Flash` | ❌ Blocked | Needs transformers>=5.x, incompatible with 26.02-py3 |
 | `QuantTrio/MiniMax-M2.5-AWQ` | 🔄 Testing | AWQ marlin works, architecture loads, GPU reservation issue |
 | `Qwen/Qwen2.5-Coder-32B-Instruct` | 🔜 Candidate | Smaller, more KV cache headroom |
+
+## Model Selection Resources
+
+- **LiveBench** (open-weight, high unseen bias filter): https://livebench.ai/#/?openweight=true&highunseenbias=true
+  - Use this to compare open-weight models on benchmarks with low data contamination risk
+  - Filter by context length and task type to find candidates for this cluster
