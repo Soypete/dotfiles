@@ -5,7 +5,7 @@
 set -e
 
 export MN_IF_NAME=enp1s0f0np0
-export VLLM_IMAGE=nvcr.io/nvidia/vllm:26.02-py3
+export VLLM_IMAGE=eugr/spark-vllm-docker
 
 # Assign static IP to QSFP interface if not already set
 if ! ip -4 addr show "$MN_IF_NAME" | awk '/inet / && !/169.254/' | grep -q inet; then

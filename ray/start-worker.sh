@@ -5,7 +5,7 @@
 set -e
 
 export MN_IF_NAME=enp1s0f0np0
-export VLLM_IMAGE=nvcr.io/nvidia/vllm:26.02-py3
+export VLLM_IMAGE=eugr/spark-vllm-docker
 export HEAD_NODE_IP=192.168.100.10
 
 # Assign static IP to QSFP interface if not already set
