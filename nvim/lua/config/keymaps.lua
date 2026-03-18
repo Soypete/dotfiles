@@ -11,7 +11,7 @@ map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", opts)
 map("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)
 map("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
 map("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
-map("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts)
+map("n", "gy", "<cmd>Telescope lsp_type_definitions<CR>", opts)
 
 -- NerdTree
 map("n", "<leader>n", ":NERDTreeFocus<CR>", opts)
