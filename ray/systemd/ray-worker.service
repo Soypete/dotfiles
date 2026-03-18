@@ -1,0 +1,19 @@
+[Unit]
+Description=Ray Worker Node (vLLM cluster)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=soypete
+WorkingDirectory=/home/soypete
+ExecStartPre=/bin/bash -c 'ip addr show enp1s0f0np0 | grep -q 192.168.100.11 || sudo ip addr add 192.168.100.11/24 dev enp1s0f0np0'
+ExecStart=/bin/bash /home/soypete/start-worker.sh
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
