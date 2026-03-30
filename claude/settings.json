@@ -1,8 +1,17 @@
 {
-  "model": "sonnet[1m]",
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  }
+    "typescript-lsp@claude-plugins-official": true,
+    "slack@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "datadog-api-claude-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "DataDog/datadog-api-claude-plugin"
+      }
+    }
+  },
+  "model": "opus[1m]"
 }
