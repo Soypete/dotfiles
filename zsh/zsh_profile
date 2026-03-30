@@ -28,12 +28,3 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
 alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
-
-# Exo cluster configuration for Claude Code
-export EXO_LIBP2P_NAMESPACE="soypete_tech"
-
-# Claude Code with exo backend - use exo-claude function in .zshrc to specify model
-# Or set these for default behavior:
-# export ANTHROPIC_BASE_URL="${EXO_API_URL}/v1"
-# export ANTHROPIC_AUTH_TOKEN=""
-# export ANTHROPIC_MODEL="meta-llama/Llama-3.3-70B-Instruct"  # Example model
