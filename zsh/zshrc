@@ -122,10 +122,10 @@ alias re="source ~/.zshrc"
 alias ve="source ~/.vimrc"
 alias s="history | grep "
 alias python="python3"
-alias drmi="for IMAGE in $(podman images -a -q) 
-	do 
-    docker rmi $IMAGE
-	done"
+# alias drmi="for IMAGE in $(podman images -a -q)
+# 	do
+#     docker rmi $IMAGE
+# 	done"
 
 
 # The next line enables shell command completion for gcloud.
