@@ -38,6 +38,13 @@ The repository follows a modular structure where each tool has its own directory
   - Custom ToyChest theme with specific color palette
   - Font size: 24, non-native fullscreen mode
 
+- **opencode/**: OpenCode AI editor configuration
+  - `opencode.json`: Model, LSP, and provider settings
+  - Provider: Ray cluster at `http://100.87.122.109:8000/v1` running MiniMax-M2.5-AWQ
+  - Context limit: 40,960 tokens | Output limit: 16,384 tokens
+  - Rationale: vLLM server has `--max-model-len 128000`; limits sized for 2 parallel sessions
+    `(context + output) × 2 sessions = (40960 + 16384) × 2 = ~114K < 128K`
+
 - **crush/**: Crush AI editor configuration
   - `crush.json`: LSP configurations for Go, TypeScript, and Nix
   - Defines local LLM providers (pedro on tailnet, ollama locally)

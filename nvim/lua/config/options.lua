@@ -26,10 +26,6 @@ vim.api.nvim_create_autocmd("BufEnter", {
 
 vim.g.lazyvim_python_ruff = "ruff"
 
--- Colorscheme and Lightline
-vim.cmd("colorscheme nightfly")
-vim.g.lightline = { colorscheme = "nightfly" }
-vim.g.nightflyCursorColor = 1
 --
 -- Run gofmt + goimports on save
 local format_sync_grp = vim.api.nvim_create_augroup("goimports", {})

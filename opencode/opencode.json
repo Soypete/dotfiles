@@ -37,7 +37,7 @@
       "models": {
         "QuantTrio/MiniMax-M2.5-AWQ": {
           "name": "MiniMax M2.5 AWQ",
-          "limit": { "context": 32768, "output": 8192 }
+          "limit": { "context": 40960, "output": 16384 }
         }
       }
     }

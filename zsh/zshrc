@@ -165,3 +165,5 @@ fi
 
 # opencode
 export PATH=$HOME/.opencode/bin:$PATH
+
+export PATH="/Users/miriahpeterson/.pixi/bin:$PATH"
