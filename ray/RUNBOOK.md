@@ -78,7 +78,12 @@ docker ps                  # head container should be running on spark-f5ea
 Node 2's container started without GPU access, or it's still connected from a previous crashed session. Restart both containers.
 
 ### "Current node has no GPU available"
-GPU is still reserved by a previous placement group. Restart the cluster (docker stop both containers, restart head, restart worker).
+GPU is still reserved by a previous placement group. `launch-cluster.sh exec` won't fix this because it skips container restart when containers are already running. You must manually stop and remove containers on both nodes first:
+```bash
+docker stop vllm_node && docker rm vllm_node
+ssh 169.254.91.57 'docker stop vllm_node && docker rm vllm_node'
+```
+Then re-run `./launch-cluster.sh exec vllm serve ...` to get fresh containers with clean Ray state.
 
 ### CUDA launch failure on Node 2 during weight load
 Model wasn't pre-cached on Node 2. Download first:
@@ -105,12 +110,40 @@ bash /tmp/serve.sh'
 
 ---
 
+## Downloading Models
+
+```bash
+./hf-download.sh QuantTrio/MiniMax-M2.5-AWQ -c --copy-parallel
+```
+
+---
+
+## Serving Models
+
+```bash
+cd ~/spark-vllm-docker
+
+./launch-cluster.sh exec vllm serve \
+  QuantTrio/MiniMax-M2.5-AWQ \
+  --trust-remote-code \
+  --port 8000 --host 0.0.0.0 \
+  --gpu-memory-utilization 0.7 \
+  -tp 2 \
+  --distributed-executor-backend ray \
+  --max-model-len 128000 \
+  --compilation-config '{"cudagraph_mode": "PIECEWISE"}' \
+  --enable-auto-tool-choice --tool-call-parser minimax_m2 \
+  --reasoning-parser minimax_m2_append_think
+```
+
+---
+
 ## Model Notes
 
 | Model | Status | Notes |
 |---|---|---|
 | `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | eugr/spark-vllm-docker, minimax_m2 parser, PIECEWISE required |
-| `zai-org/GLM-4.5-Air` | ✅ Working | 99.6GB, PIECEWISE required, glm45 parser |
+| `zai-org/GLM-4.5-Air` | ❌ Not working | 99.6GB, never got working on dual Spark |
 
 ## Model Selection Resources
 

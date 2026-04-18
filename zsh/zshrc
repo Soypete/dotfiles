@@ -167,3 +167,7 @@ fi
 export PATH=$HOME/.opencode/bin:$PATH
 
 export PATH="/Users/miriahpeterson/.pixi/bin:$PATH"
+export PATH="/Users/soypete/code/opensource/foundry/v1:$PATH"
+export KUBECONFIG=~/.foundry/kubeconfig
+
+export PATH="/Users/soypete/.pixi/bin:$PATH"

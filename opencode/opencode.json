@@ -3,6 +3,12 @@
   "autoupdate": true,
   "model": "ray/QuantTrio/MiniMax-M2.5-AWQ",
   "instructions": ["CLAUDE.md"],
+  "command": {
+    "save-session": {
+      "template": "Save the important information from this session to memory. Run: ~/code/opensource/experiments/scripts/save-session.sh $SESSION_ID $TRANSCRIPT_PATH",
+      "description": "Save session to memory systems"
+    }
+  },
   "formatter": {
     "goimports": {
       "command": ["goimports", "-w", "$FILE"],
