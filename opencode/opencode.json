@@ -7,26 +7,7 @@
     "skill": {
       "graphify": "allow",
       "llmwiki": "allow",
-      "mempalace": "allow",
-      "query-mem": "allow"
-    }
-  },
-  "skill": {
-    "graphify": {
-      "command": ["python3", "/Users/soypete/code/opensource/experiments/skills/graphify.py"],
-      "description": "Query Graphify knowledge graph"
-    },
-    "llmwiki": {
-      "command": ["python3", "/Users/soypete/code/opensource/experiments/skills/llmwiki.py"],
-      "description": "Query LLMWiki documentation"
-    },
-    "mempalace": {
-      "command": ["python3", "/Users/soypete/code/opensource/experiments/skills/mempalace.py"],
-      "description": "Query MemPalace semantic memory"
-    },
-    "query-mem": {
-      "command": ["python3", "/Users/soypete/code/opensource/experiments/query_systems.py"],
-      "description": "Query all memory systems"
+      "mempalace": "allow"
     }
   },
   "command": {
