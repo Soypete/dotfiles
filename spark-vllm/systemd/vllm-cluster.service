@@ -1,0 +1,20 @@
+[Unit]
+Description=vLLM Cluster (MiniMax M2.5 AWQ via spark-vllm-docker)
+After=docker.service network-online.target tailscaled.service
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=soypete
+WorkingDirectory=/home/soypete/spark-vllm-docker
+ExecStartPre=/home/soypete/dotfiles/spark-vllm/cleanup-containers.sh
+ExecStart=/home/soypete/dotfiles/spark-vllm/start-cluster.sh
+ExecStop=/bin/bash /home/soypete/spark-vllm-docker/launch-cluster.sh stop
+Restart=on-failure
+RestartSec=60
+TimeoutStartSec=600
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
