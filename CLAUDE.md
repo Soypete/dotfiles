@@ -38,6 +38,29 @@ The repository follows a modular structure where each tool has its own directory
   - Custom ToyChest theme with specific color palette
   - Font size: 24, non-native fullscreen mode
 
+- **opencode/**: OpenCode AI editor configuration
+  - `opencode.json`: Model, LSP, provider, skill permissions, and custom commands
+  - `tui.json`: TUI keybinds (`display_thinking` → `<leader>i`)
+  - `skills/`: Global OpenCode skills (graphify, llmwiki, mempalace).
+    See `skills/HOW_TO_WRITE_SKILLS.md` for the format and permission model.
+  - Provider: the `spark-vllm/` cluster at `http://100.87.122.109:8000/v1`
+    running MiniMax-M2.5-AWQ
+  - Context limit: 100,000 tokens | Output limit: 24,000 tokens
+  - vLLM server has `--max-model-len 128000`; single session sized to stay under 128K
+    `context + output = 100000 + 24000 = 124K < 128K`.
+    Lower these if the server's `--max-model-len` is ever lowered.
+
+- **spark-vllm/**: Two-node Spark vLLM cluster (serves the OpenCode provider above)
+  - `RUNBOOK.md`: Start/restart, QSFP static-IP persistence, troubleshooting,
+    GGUF post-mortem, model notes
+  - `start-cluster.sh`: AWQ serve command (the working config)
+  - `start-cluster-gguf.sh`: GGUF variant — guarded off, M3 GGUF unservable on vLLM
+  - `cleanup-containers.sh`: Wipes containers on both nodes for clean Ray state
+  - `hf-download-gguf.sh`: Download + shard-merge + rsync to worker
+  - `systemd/vllm-cluster.service`: Single unit replacing the old 3-unit `ray/` setup
+  - Scripts run from `/home/soypete/` on spark-f5ea, scp'd from here —
+    see RUNBOOK "Deploying these scripts to the Sparks"
+
 - **crush/**: Crush AI editor configuration
   - `crush.json`: LSP configurations for Go, TypeScript, and Nix
   - Defines local LLM providers (pedro on tailnet, ollama locally)
@@ -71,7 +94,7 @@ The `startup.sh` script handles complete environment setup:
 
 - `$XDG_CONFIG_HOME`: `$HOME/dotfiles` (affects where config files are loaded from)
 - `$GOPATH`: `${HOME}/code/go`
-- `$KUBECONFIG`: `~/kubeconfig`
+- `$KUBECONFIG`: `~/.foundry/kubeconfig` (managed by Foundry CLI)
 - `$EDITOR`: `nvim` (local), `vim` (SSH)
 - `$SSH_AUTH_SOCK`: 1Password SSH agent socket
 - `$NVM_DIR`: `$HOME/dotfiles/nvm` (Node Version Manager)

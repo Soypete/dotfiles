@@ -4,7 +4,7 @@ source ~/.secrets
 # alias cdmisc="cd ~/code/misc"
 
 export XDG_CONFIG_HOME="$HOME/dotfiles"
-export KUBECONFIG=~/.kube/pedro-ops-config
+export KUBECONFIG=~/.foundry/kubeconfig
 
 if [ -f /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -18,7 +18,8 @@ export OPENAI_API_KEY="TEST"
 source ~/.config/envman/PATH.env
 
 # PATH=$PATH:$HOME/code/google-cloud-sdk/bin/
-# PATH=$PATH:$HOME/nvim-macos-arm64/bin/
+export PATH="$PATH:$HOME/nvim-macos-arm64/bin/"
+export PATH="$PATH:/Applications/Tailscale.app/Contents/MacOS"
 
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
@@ -31,3 +32,6 @@ export EXO_LIBP2P_NAMESPACE="soypete_tech"
 # export ANTHROPIC_BASE_URL="${EXO_API_URL}/v1"
 # export ANTHROPIC_AUTH_TOKEN=""
 # export ANTHROPIC_MODEL="meta-llama/Llama-3.3-70B-Instruct"  # Example model
+
+# OpenBAO aliases
+alias openbao-put='VAULT_ADDR=http://100.81.89.62:8200 vault kv put'
