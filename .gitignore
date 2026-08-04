@@ -8,3 +8,7 @@ gh/*
 gh-copilot/*
 helm/*
 op/
+homebrew/
+uv/
+*.bak
+herdr/

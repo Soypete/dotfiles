@@ -307,7 +307,17 @@ return {
 	{ "folke/todo-comments.nvim", opts = {} },
 
 	-- nightfly
-	{ "bluz71/vim-nightfly-colors", name = "nightfly", lazy = false, priority = 1000 },
+	{
+		"bluz71/vim-nightfly-colors",
+		name = "nightfly",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			vim.g.nightflyCursorColor = 1
+			vim.cmd("colorscheme nightfly")
+			vim.g.lightline = { colorscheme = "nightfly" }
+		end,
+	},
 
 	-- llamavim
 	{

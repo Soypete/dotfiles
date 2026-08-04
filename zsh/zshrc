@@ -4,8 +4,9 @@
 # Path to your oh-my-zsh installation.
 export ZSH="/${HOME}/.oh-my-zsh"
 
-# Foundry CLI
-export PATH="$HOME/code/cli/foundry:$PATH"
+# Foundry CLI -- built from source at ~/code/opensource/foundry/v1
+# (rebuild: cd ~/code/opensource/foundry/v1 && go build -o foundry ./cmd/foundry)
+export PATH="$HOME/code/opensource/foundry/v1:$PATH"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -155,7 +156,7 @@ export NVM_DIR="$HOME/dotfiles/nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 # The following lines have been added by Docker Desktop to enable Docker CLI completions.
-fpath=(/Users/soypete/.docker/completions $fpath)
+fpath=("$HOME/.docker/completions" $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
@@ -165,3 +166,10 @@ fi
 
 # opencode
 export PATH=$HOME/.opencode/bin:$PATH
+
+# pixi
+export PATH="$HOME/.pixi/bin:$PATH"
+
+# foundry PATH is set once at the top of this file (see "Foundry CLI")
+export KUBECONFIG="$HOME/.foundry/kubeconfig"
+
