@@ -2,7 +2,12 @@
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
   "model": "ray/QuantTrio/MiniMax-M2.5-AWQ",
-  "instructions": ["CLAUDE.md"],
+  "instructions": [
+    "CLAUDE.md"
+  ],
+  "env": {
+    "KUBECONFIG": "~/.foundry/kubeconfig"
+  },
   "permission": {
     "skill": {
       "draft-plan": "allow",
@@ -18,25 +23,47 @@
   },
   "formatter": {
     "goimports": {
-      "command": ["goimports", "-w", "$FILE"],
-      "extensions": [".go"]
+      "command": [
+        "goimports",
+        "-w",
+        "$FILE"
+      ],
+      "extensions": [
+        ".go"
+      ]
     }
   },
   "lsp": {
     "go": {
-      "command": ["gopls"],
-      "extensions": [".go"],
+      "command": [
+        "gopls"
+      ],
+      "extensions": [
+        ".go"
+      ],
       "env": {
         "GOTOOLCHAIN": "go1.24.5"
       }
     },
     "typescript": {
-      "command": ["typescript-language-server", "--stdio"],
-      "extensions": [".ts", ".tsx", ".js", ".jsx"]
+      "command": [
+        "typescript-language-server",
+        "--stdio"
+      ],
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx"
+      ]
     },
     "nix": {
-      "command": ["nil"],
-      "extensions": [".nix"]
+      "command": [
+        "nil"
+      ],
+      "extensions": [
+        ".nix"
+      ]
     }
   },
   "provider": {
@@ -50,7 +77,34 @@
       "models": {
         "QuantTrio/MiniMax-M2.5-AWQ": {
           "name": "MiniMax M2.5 AWQ",
-          "limit": { "context": 100000, "output": 24000 }
+          "limit": {
+            "context": 100000,
+            "output": 24000
+          }
+        }
+      }
+    },
+    "pedrogpt": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "pedrogpt (llama.cpp, RTX 5090)",
+      "options": {
+        "baseURL": "http://pedrogpt:8000/v1",
+        "apiKey": "fake"
+      },
+      "models": {
+        "qwen3.6-27b-mtp": {
+          "name": "Qwen3.6 27B (MTP)",
+          "limit": {
+            "context": 216064,
+            "output": 32000
+          }
+        },
+        "qwen3.8-27b": {
+          "name": "Qwen3.8 27B",
+          "limit": {
+            "context": 262144,
+            "output": 32000
+          }
         }
       }
     }
