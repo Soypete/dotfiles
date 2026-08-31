@@ -258,12 +258,17 @@ First successful bring-up. Measured on the running server:
 
 | Metric | Value |
 |---|---|
-| `max_model_len` (`auto` resolved) | **874,496** |
-| Model load | 81.34 GiB/node, ~80 s |
-| GPU KV cache | 959,451 tokens (1.10x concurrency at max len) |
-| Available KV memory | 10.34 GiB/node |
+| `max_model_len` (`auto` resolved) | **716,800 – 874,496** (varies, see below) |
+| Model load | 81.34 GiB/node, ~30-40 s (weights alone) |
+| GPU KV cache | 786,423 – 959,451 tokens (1.10x concurrency at max len) |
 | Generation throughput | **~64 tok/s** (193 tok, single stream, warm) |
-| Startup wall time | ~4.5 min (weights → `Application startup complete`) |
+| Startup wall time | ~3.5-4.5 min (start → `Application startup complete`) |
+
+**`max_model_len: auto` resolves differently on each start** — it is sized from
+KV memory free at that moment. Observed 874,496 right after a cache drop and
+716,800 on a later start. This is normal. Keep OpenCode's limits under the
+*lower* end (currently 262144 + 32000) so a restart never invalidates them; check
+`curl .../v1/models` if you need the current value.
 
 Verified: plain completion, `deepseek_v4` reasoning parser (reasoning split from
 content), tool calling (`finish_reason: tool_calls`, correct args), and the
