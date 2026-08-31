@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  "model": "ray/QuantTrio/MiniMax-M2.5-AWQ",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash-0731",
   "instructions": [
     "CLAUDE.md"
   ],
@@ -69,24 +69,24 @@
   "provider": {
     "ray": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Ray Cluster",
+      "name": "Spark Cluster (spark-f5ea)",
       "options": {
-        "baseURL": "http://100.87.122.109:8000/v1",
+        "baseURL": "http://100.87.122.108:8000/v1",
         "apiKey": "fake"
       },
       "models": {
-        "QuantTrio/MiniMax-M2.5-AWQ": {
-          "name": "MiniMax M2.5 AWQ",
+        "deepseek-ai/DeepSeek-V4-Flash-0731": {
+          "name": "DeepSeek V4 Flash 0731",
           "limit": {
-            "context": 100000,
-            "output": 24000
+            "context": 262144,
+            "output": 32000
           }
         }
       }
     },
     "pedrogpt": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "pedrogpt (llama.cpp, RTX 5090)",
+      "name": "pedrogpt via MagicDNS (other tailnet, llama.cpp RTX 5090)",
       "options": {
         "baseURL": "http://pedrogpt:8000/v1",
         "apiKey": "fake"
@@ -101,6 +101,30 @@
         },
         "qwen3.8-27b": {
           "name": "Qwen3.8 27B",
+          "limit": {
+            "context": 262144,
+            "output": 32000
+          }
+        }
+      }
+    },
+    "pedrogpt-haikei": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "pedrogpt via haikei tailnet (llama.cpp, RTX 5090)",
+      "options": {
+        "baseURL": "http://100.121.229.113:8000/v1",
+        "apiKey": "fake"
+      },
+      "models": {
+        "qwen3.6-27b-mtp": {
+          "name": "Qwen3.6 27B (MTP, haikei)",
+          "limit": {
+            "context": 216064,
+            "output": 32000
+          }
+        },
+        "qwen3.8-27b": {
+          "name": "Qwen3.8 27B (haikei)",
           "limit": {
             "context": 262144,
             "output": 32000

@@ -43,21 +43,34 @@ The repository follows a modular structure where each tool has its own directory
   - `tui.json`: TUI keybinds (`display_thinking` → `<leader>i`)
   - `skills/`: Global OpenCode skills (graphify, llmwiki, mempalace).
     See `skills/HOW_TO_WRITE_SKILLS.md` for the format and permission model.
-  - Provider: the `spark-vllm/` cluster at `http://100.87.122.109:8000/v1`
-    running MiniMax-M2.5-AWQ
-  - Context limit: 100,000 tokens | Output limit: 24,000 tokens
-  - vLLM server has `--max-model-len 128000`; single session sized to stay under 128K
-    `context + output = 100000 + 24000 = 124K < 128K`.
-    Lower these if the server's `--max-model-len` is ever lowered.
+  - Providers:
+    - `ray` — the `spark-vllm/` cluster (spark-f5ea) at
+      `http://100.87.122.108:8000/v1` on the haikei tailnet
+      (`http://100.87.122.109:8000/v1` on the other tailnet — same machine)
+    - `pedrogpt` — llama.cpp on RTX 5090 via MagicDNS `http://pedrogpt:8000/v1`
+    - `pedrogpt-haikei` — the same box at `http://100.121.229.113:8000/v1`,
+      for when the client is on the haikei tailnet
+  - Both pedrogpt entries address ONE machine: only one model is resident at a
+    time (32GB VRAM), so switching triggers a ~18GB reload.
+  - Default model: `ray/deepseek-ai/DeepSeek-V4-Flash-0731`. MiniMax is no longer
+    listed in `opencode.json` — it is not running. To go back to it, re-add the
+    model entry and switch `START_SCRIPT` (see `spark-vllm/RUNBOOK.md`).
+  - Keep `context + output` under the server's `--max-model-len`.
 
 - **spark-vllm/**: Two-node Spark vLLM cluster (serves the OpenCode provider above)
   - `RUNBOOK.md`: Start/restart, QSFP static-IP persistence, troubleshooting,
     GGUF post-mortem, model notes
-  - `start-cluster.sh`: AWQ serve command (the working config)
-  - `start-cluster-gguf.sh`: GGUF variant — guarded off, M3 GGUF unservable on vLLM
+  - `start-cluster.sh`: MiniMax-M2.5-AWQ serve command (known-good fallback)
+  - `start-cluster-deepseek.sh`: DeepSeek-V4-Flash-0731 via the upstream recipe
+    runner (284B MoE, ~167GB, tp=2 across both nodes, B12X/SM121 container)
+  - `start-cluster-gguf.sh`: GGUF variant — guarded off, unservable on vLLM
   - `cleanup-containers.sh`: Wipes containers on both nodes for clean Ray state
   - `hf-download-gguf.sh`: Download + shard-merge + rsync to worker
-  - `systemd/vllm-cluster.service`: Single unit replacing the old 3-unit `ray/` setup
+  - `systemd/vllm-cluster.service`: One unit; the model is selected by
+    `START_SCRIPT` in `/etc/default/vllm-cluster` (see `vllm-cluster.env.example`)
+  - Prefer upstream `recipes/*.yaml` over hand-written serve commands for new
+    models — they carry the container image, env, and mods. Keep the
+    `~/spark-vllm-docker` checkout current.
   - Scripts run from `/home/soypete/` on spark-f5ea, scp'd from here —
     see RUNBOOK "Deploying these scripts to the Sparks"
 
@@ -66,14 +79,6 @@ The repository follows a modular structure where each tool has its own directory
   - Defines local LLM providers (pedro on tailnet, ollama locally)
   - Tool permissions: view, ls, grep, edit, mcp_context7_get-library-doc
 
-- **exo/**: Exo cluster configuration for distributed AI inference
-  - `config/`: Configuration files and documentation
-  - `scripts/`: Management scripts (start-cluster.sh, status.sh, models.sh)
-  - `logs/`: Cluster log files
-  - Cluster namespace: `soypete_tech`
-  - Hardware: Mac Studio + 2x Spark nodes (coupled) on 192.168.1.x LAN
-  - API endpoint: `http://localhost:52415`
-
 ### Installation Flow
 
 The `startup.sh` script handles complete environment setup:
@@ -81,7 +86,7 @@ The `startup.sh` script handles complete environment setup:
 2. Installs webi.sh package manager
 3. Installs core tools via webi: jq, gh, terraform, go, ripgrep, node
 4. Platform-specific setup:
-   - macOS (arm64): Installs neovim, python, brew, uv, ruff, podman, fzf, 1password-cli, macmon, node (for exo)
+   - macOS (arm64): Installs neovim, python, brew, uv, ruff, podman, fzf, 1password-cli, macmon, node
    - Linux: Uses apt for vim, podman, fzf, 1password-cli
 5. Initializes podman machine
 6. Creates symlinks for dotfiles:
@@ -98,11 +103,6 @@ The `startup.sh` script handles complete environment setup:
 - `$EDITOR`: `nvim` (local), `vim` (SSH)
 - `$SSH_AUTH_SOCK`: 1Password SSH agent socket
 - `$NVM_DIR`: `$HOME/dotfiles/nvm` (Node Version Manager)
-- `$EXO_API_URL`: `http://localhost:52415` (exo cluster API)
-- `$EXO_LIBP2P_NAMESPACE`: `soypete_tech` (cluster isolation)
-- `$ANTHROPIC_BASE_URL`: `${EXO_API_URL}/v1` (Claude Code with exo backend)
-- `$ANTHROPIC_AUTH_TOKEN`: Empty (local cluster, no auth needed)
-- `$ANTHROPIC_MODEL`: Set to desired model ID from exo cluster
 
 ## Common Development Commands
 
@@ -160,74 +160,6 @@ podman machine init   # Initialize podman VM
 podman machine start  # Start podman VM
 docker [cmd]          # Aliased to podman
 ```
-
-### Exo Cluster Management
-
-```bash
-exo-start      # Start the exo cluster
-exo-status     # Check cluster status and health
-exo-models     # List available models
-exo-claude     # Run Claude Code with exo backend (alias for 'claude')
-```
-
-**Setup exo cluster on Sparks:**
-
-1. Deploy configs from Mac Studio:
-   ```bash
-   ~/dotfiles/exo/scripts/deploy-config-to-sparks.sh
-   ```
-
-2. On each Spark, install exo:
-   ```bash
-   # Clone and build
-   git clone https://github.com/exo-explore/exo ~/code/exo
-   cd ~/code/exo/dashboard && npm install && npm run build && cd ..
-
-   # Set namespace
-   echo 'export EXO_LIBP2P_NAMESPACE="soypete-spark-cluster"' >> ~/.zshrc
-   source ~/.zshrc
-
-   # Setup launchd auto-start
-   ~/exo/scripts/setup-autostart.sh
-   ```
-
-3. Run Claude Code from your Mac Studio:
-   ```bash
-   # Show available models
-   exo-claude
-
-   # Run with specific MLX model
-   exo-claude mlx-community/Llama-3.1-8B-Instruct-4bit
-   exo-claude mlx-community/Qwen2.5-Coder-7B-Instruct-4bit
-   ```
-
-**Manage exo service on Sparks:**
-```bash
-# Check status
-launchctl list | grep com.soypete.exo
-
-# Stop
-launchctl unload ~/Library/LaunchAgents/com.soypete.exo.plist
-
-# Start
-launchctl load ~/Library/LaunchAgents/com.soypete.exo.plist
-
-# View logs
-tail -f ~/dotfiles/exo/logs/exo-startup.log
-```
-
-**Cluster Details:**
-- Dashboard: http://100.87.122.109:52415 (or localhost if running locally)
-- API: http://100.87.122.109:52415/v1 (OpenAI-compatible)
-- Nodes: 2x Spark machines at 100.87.122.109 (hardline connected via Ubiquiti)
-- Namespace: `soypete-spark-cluster` (prevents accidental cluster joining)
-- Supported Models: MLX-format models from `mlx-community` on Hugging Face
-
-**Model Recommendations:**
-- See `exo/config/MODELS.md` for complete models guide
-- Recommended: `mlx-community/Llama-3.1-8B-Instruct-4bit`
-- Code: `mlx-community/Qwen2.5-Coder-7B-Instruct-4bit`
-- Models auto-download from Hugging Face on first use
 
 ## Working with This Repository
 
