@@ -1,5 +1,5 @@
 [Unit]
-Description=vLLM Cluster (MiniMax M2.5 AWQ via spark-vllm-docker)
+Description=vLLM Cluster (model selected by /etc/default/vllm-cluster)
 After=docker.service network-online.target tailscaled.service
 Requires=docker.service
 Wants=network-online.target
@@ -8,12 +8,18 @@ Wants=network-online.target
 Type=simple
 User=soypete
 WorkingDirectory=/home/soypete/spark-vllm-docker
+# Model profile: set START_SCRIPT in /etc/default/vllm-cluster to switch models.
+#   start-cluster.sh          -> MiniMax-M2.5-AWQ (known-good fallback)
+#   start-cluster-deepseek.sh -> DeepSeek-V4-Flash-0731
+# The file is optional; without it the default below (MiniMax) is used.
+Environment=START_SCRIPT=/home/soypete/start-cluster.sh
+EnvironmentFile=-/etc/default/vllm-cluster
 ExecStartPre=/home/soypete/cleanup-containers.sh
-ExecStart=/home/soypete/start-cluster.sh
+ExecStart=/bin/bash -c 'exec "$START_SCRIPT"'
 ExecStop=/bin/bash /home/soypete/spark-vllm-docker/launch-cluster.sh stop
 Restart=on-failure
 RestartSec=60
-TimeoutStartSec=600
+TimeoutStartSec=1800
 TimeoutStopSec=30
 
 [Install]

@@ -6,7 +6,7 @@
 set -u
 
 CONTAINER="${CONTAINER:-vllm_node}"
-WORKER_HOST="${WORKER_HOST:-169.254.91.57}"
+WORKER_HOST="${WORKER_HOST:-192.168.100.11}"
 
 echo "[cleanup] stopping local container '$CONTAINER' if present..."
 docker stop "$CONTAINER" 2>/dev/null || true

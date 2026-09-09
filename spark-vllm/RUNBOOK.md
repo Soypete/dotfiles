@@ -7,6 +7,12 @@ separate systemd units with one `vllm-cluster.service`.
 
 **Endpoint:** `http://100.87.122.109:8000/v1` — consumed by `opencode/opencode.json`.
 
+That is spark-f5ea's tailscale0 address on the personal tailnet
+(`tail6fbc5.ts.net`). The same machine is `100.87.122.108` on the haikeilabs
+tailnet, so from a Mac logged into haikeilabs the `.109` address will not ping
+even though the box is up and the config is correct. Check which tailnet you are
+on (`tailscale status`) before concluding the endpoint address is stale.
+
 ## Hardware
 - **spark-f5ea** (Node 1, head): 192.168.1.X LAN, 192.168.100.10 QSFP
 - **spark-771e** (Node 2, worker): 192.168.1.84 LAN, 192.168.100.11 QSFP
@@ -20,18 +26,39 @@ dotfiles path. Re-deploy after editing any of them:
 
 ```bash
 # from the Mac, in ~/dotfiles/spark-vllm
-scp start-cluster.sh start-cluster-gguf.sh cleanup-containers.sh \
-    hf-download-gguf.sh spark-f5ea:/home/soypete/
+scp start-cluster.sh start-cluster-deepseek.sh start-cluster-gguf.sh \
+    cleanup-containers.sh hf-download-gguf.sh spark-f5ea:/home/soypete/
 ssh spark-f5ea 'chmod +x /home/soypete/*.sh'
 
 # systemd unit (only when the unit itself changed)
 scp systemd/vllm-cluster.service spark-f5ea:/tmp/
 ssh spark-f5ea 'sudo mv /tmp/vllm-cluster.service /etc/systemd/system/ \
                 && sudo systemctl daemon-reload'
+
+# model selector (only when switching the default model profile)
+scp default/vllm-cluster spark-f5ea:/tmp/
+ssh spark-f5ea 'sudo mv /tmp/vllm-cluster /etc/default/vllm-cluster'
 ```
 
 Editing the copy on the Spark directly will be silently overwritten by the next
 deploy — change it here and re-scp.
+
+## Model selection
+
+`vllm-cluster.service` does not hardcode a model. It runs `$START_SCRIPT`, which
+comes from `/etc/default/vllm-cluster` (tracked here as `default/vllm-cluster`),
+falling back to MiniMax if that file is absent. Only one model runs at a time —
+167GB of DeepSeek weights and MiniMax's ~58GB/node cannot share 128GB/node.
+
+| `START_SCRIPT` | Model | Status |
+|---|---|---|
+| `start-cluster.sh` | MiniMax-M2.5-AWQ | ✅ known-good, matches `opencode/opencode.json` |
+| `start-cluster-deepseek.sh` | DeepSeek-V4-Flash-0731 | ⚠️ unproven — never observed to serve successfully |
+
+Switching models means updating **both** ends: `/etc/default/vllm-cluster` on the
+Spark and the `ray` provider's model id in `opencode/opencode.json`. OpenCode
+requests `QuantTrio/MiniMax-M2.5-AWQ` by name; serving DeepSeek without changing
+the client leaves the endpoint up but unusable from OpenCode.
 
 ## Start Sequence
 
@@ -102,6 +129,36 @@ Head node isn't running yet, or QSFP interface has no IP. Check:
 ip addr show enp1s0f0np0   # should show 192.168.100.x
 docker ps                  # head container should be running on spark-f5ea
 ```
+
+### "Error: No active IB interfaces found." (crash-loop every 60s)
+
+`launch-cluster.sh`/`run-recipe.sh` autodetect the QSFP fabric before starting
+vLLM. With no link they exit 1 immediately — the model never loads, nothing ever
+binds :8000, and `Restart=on-failure` retries forever. A restart counter in the
+hundreds or thousands means this has been looping for days.
+
+**This is a link-layer failure, not the netplan failure below.** Both leave
+`enp1s0f0np0` without a `192.168.100.x` address, so `ip addr` alone can't tell
+them apart. `carrier` is what separates them:
+
+```bash
+cat /sys/class/net/enp1s0f0np0/carrier   # 0 = no physical link, 1 = link up
+ip neigh show | grep 192.168.1.84        # INCOMPLETE/FAILED = worker not on the wire
+```
+
+- `carrier=0` → the other Spark is off, or the QSFP cable is unseated/failed.
+  Config is irrelevant; no amount of `netplan apply` will fix it. Sparks have no
+  status LEDs, so confirm from the head node rather than by looking at the box.
+- `carrier=1` but no address → genuine netplan problem; see the next section.
+
+Confirmed cause of the 2026-09-06 outage: the worker left the network shortly
+after a routine `systemctl restart` (the ExecStop shutdown in the journal is
+clean — no OOM, no CUDA error), so the restart's ExecStart had no fabric to
+detect and looped 1,665 times over two days.
+
+Note the head node's tailscale0 address (`100.87.122.109`) stays up throughout,
+since it is unrelated to the QSFP fabric — the endpoint being unreachable while
+the host still pings is expected here, not evidence of a network problem.
 
 ### Boot hangs on "Waiting for creating a placement group" with 1 GPU
 QSFP static IPs are gone (interfaces fell back to link-local 169.254.x), so
