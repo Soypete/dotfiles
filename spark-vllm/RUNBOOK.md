@@ -52,13 +52,35 @@ falling back to MiniMax if that file is absent. Only one model runs at a time �
 
 | `START_SCRIPT` | Model | Status |
 |---|---|---|
-| `start-cluster.sh` | MiniMax-M2.5-AWQ | ✅ known-good, matches `opencode/opencode.json` |
-| `start-cluster-deepseek.sh` | DeepSeek-V4-Flash-0731 | ⚠️ unproven — never observed to serve successfully |
+| `start-cluster-deepseek.sh` | DeepSeek-V4-Flash-0731 | ✅ current default |
+| `start-cluster.sh` | MiniMax-M2.5-AWQ | ✅ known-good fallback |
 
 Switching models means updating **both** ends: `/etc/default/vllm-cluster` on the
-Spark and the `ray` provider's model id in `opencode/opencode.json`. OpenCode
-requests `QuantTrio/MiniMax-M2.5-AWQ` by name; serving DeepSeek without changing
-the client leaves the endpoint up but unusable from OpenCode.
+Spark and the `ray` provider's model id in `opencode/opencode.json` (both models
+are listed there; change the top-level `model` key). The server matches on exact
+model id, so a mismatch leaves the endpoint up but returns model-not-found rather
+than a connection error.
+
+### DeepSeek-V4-Flash-0731 startup profile (2026-09-08, first successful serve)
+
+~4 minutes cold to `Application startup complete.`:
+
+| Phase | Time |
+|---|---|
+| Weight load (InstantTensor draft-loader) | 31s + 45s |
+| `torch.compile` (AOT cache hit) | 1.8s |
+| Profiling/warmup run | 18s |
+| DeepSeek V4 mHC kernel warmup | 4.7s |
+
+Served `max_model_len` is **785,152**, and vLLM reports `GPU KV cache size:
+861,420 tokens` — but max concurrency at full context is only **1.10x**. One
+maximum-length request consumes nearly the entire KV pool, so concurrent requests
+queue rather than run in parallel. The client is therefore set to `context:
+200000` rather than anything near the ceiling, which leaves real headroom for
+concurrency and for OpenCode's compaction behavior.
+
+`SymmMemCommunicator: Device capability 12.1 not supported` during startup is
+benign on GB10 — it falls back to a standard communicator.
 
 ## Start Sequence
 
@@ -358,6 +380,7 @@ Results:
 
 | Model | Status | Notes |
 |---|---|---|
+| `deepseek-ai/DeepSeek-V4-Flash-0731` | ✅ Working | 284B MoE, B12X container + instanttensor draft-loader mod via `run-recipe.sh`; first successful serve 2026-09-08, ~4 min cold start, 785K context |
 | `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | eugr/spark-vllm-docker, minimax_m2 parser, PIECEWISE required |
 | `unsloth/MiniMax-M3-GGUF` (UD-IQ3_XXS) | ❌ Blocked on vLLM | no minimax-m3 GGUF support anywhere in vLLM (in-tree or plugin) as of 2026-07; file staged on both nodes; llama.cpp is the viable route |
 | `zai-org/GLM-4.5-Air` | ❌ Not working | 99.6GB, never got working on dual Spark |
