@@ -167,6 +167,177 @@ Quick proof both nodes are really computing (any executor): a completion's
 *(Ray recipes only — see the executor table above.)*
 Node 2's container started without GPU access, or it's still connected from a previous crashed session. Restart both containers.
 
+### 2026-09-14: kernel 7.0.0 breaks RDMA — DO NOT UPGRADE THE KERNEL
+
+**Kernel `7.0.0-1019-nvidia` cannot serve multi-node on these Sparks.** Every
+`vllm serve` dies during worker init with:
+
+```
+NCCL WARN Call to ibv_reg_mr_iova2 failed with error Cannot allocate memory
+RuntimeError: NCCL error: unhandled system error
+```
+
+RDMA memory registration fails inside containers. It affects **both** executors —
+NCCL (B12X recipe) *and* Ray (MiniMax recipe) fail identically — so it is below
+the executor layer. `6.11.0-1016-nvidia` works; the same configs served all
+morning on it.
+
+Ruled out during the investigation (don't re-chase these): wrong `IB_IF`,
+orphaned containers, Docker memlock (fixed separately, see below), and
+`nvidia-peermem` — that module can't load on 7.0.0 (`ib_register_peer_memory_client`
+is absent from the kernel) but **doesn't exist for 6.11 either**, and 6.11 works,
+so GPUDirect peer memory was never in play. `ib_write_bw` host-to-host also
+succeeds at 108 Gb/s on the broken kernel, because it runs on the *host*.
+
+**How it happened:** `apt-get dist-upgrade` followed the `linux-nvidia-hwe-24.04`
+metapackage from 6.11.0-1016 → 7.0.0-1019, and **removed the 6.11 NVIDIA modules**
+as obsolete — so the first rollback boot came up with no GPU at all.
+
+**Recovery / pin (both nodes):**
+
+```bash
+# restore the old kernel's NVIDIA modules (apt may claim "already newest"
+# while /lib/modules/6.11.0-1016-nvidia has ZERO nvidia*.ko — use --reinstall)
+sudo apt-get install --reinstall -y linux-modules-nvidia-580-open-6.11.0-1016-nvidia
+find /lib/modules/6.11.0-1016-nvidia -name 'nvidia*.ko*' | wc -l    # expect 8
+
+# make 6.11 the permanent default (IDs differ per node — read each node's own grub.cfg)
+SUB=$(sudo grep -oE 'gnulinux-advanced-[a-f0-9-]+' /boot/grub/grub.cfg | head -1)
+ID=$(sudo grep -oE 'gnulinux-6\.11\.0-1016-nvidia-advanced-[a-f0-9-]+' /boot/grub/grub.cfg | head -1)
+sudo grub-set-default "$SUB>$ID"
+
+# stop dist-upgrade pulling 7.0.0 back in
+sudo apt-mark hold linux-nvidia-hwe-24.04 linux-image-nvidia-hwe-24.04 \
+                   linux-modules-nvidia-580-open-nvidia-hwe-24.04
+```
+
+Use `grub-reboot` (one-shot, self-reverting) rather than `grub-set-default` while
+still testing an unproven kernel.
+
+### 2026-09-14: serving DeepSeek-V4-Flash (non-B12X) — the working config
+
+Verified serving on 2026-09-14: correct answers, 4-way concurrency, 2k-token
+prompts, ~1 s latency, `-tp2-` in `system_fingerprint`, `Worker_TP` busy on the
+worker, zero RDMA errors.
+
+| | |
+|---|---|
+| Model | `deepseek-ai/DeepSeek-V4-Flash` (not `-0731`) |
+| Container | `vllm-node` (stock), **vLLM 0.29.1rc1** |
+| Recipe | `deepseek-v4-flash-safetensors.yaml` (local variant, kept in this dir) |
+| max_model_len | 131072 (via `MAX_MODEL_LEN` in the start script) |
+| gpu_memory_utilization | **0.90** |
+| Weights | 75.77 GiB/node · GPU KV cache 464,928 tokens |
+
+Three fixes were needed beyond the kernel rollback:
+
+1. **`vllm: error: unrecognized arguments: --reasoning-config`** — the stock
+   container shipped vLLM 0.17.2rc1 (March), older than the recipe. Rebuild with
+   the prebuilt wheel instead of compiling:
+   ```bash
+   cd ~/spark-vllm-docker
+   ./build-and-copy.sh --use-wheels --force-vllm-download   # head image
+   ./build-and-copy.sh --no-build --copy-to 192.168.100.11  # push to worker
+   ```
+   Wheels come from the upstream `prebuilt-vllm-current` release. **`--use-wheels`
+   is incompatible with `--exp-b12x`** (no B12X wheels are published), so this
+   rebuilds only the stock image; `vllm-node-b12x` is left alone.
+   Verify both nodes match: `docker images --no-trunc --format '{{.ID}}' vllm-node:latest`.
+
+2. **`RuntimeError: buffer_size (1059061760 B) exceeds device memory budget (...)`**
+   — raised `gpu_memory_utilization` 0.8 → **0.90**. This is *not* a model-size or
+   context-length problem (the model needs only 75.77 GiB of 128 GB, and lowering
+   `max_model_len` 500000 → 131072 changed nothing). It is `instanttensor`'s weight
+   **load buffer**, whose budget scales with `gpu_memory_utilization`.
+   `--load-format safetensors` does **not** avoid it — this build still routes
+   through `instanttensor.safe_open` and just shrinks `io_depth` (256 → 71 → 42)
+   until it gives up.
+
+3. **`max_model_len`** — the recipe's 500000 is fine for memory but the start
+   script pins 131072 for headroom; override with `MAX_MODEL_LEN=...`.
+
+Benign noise in this configuration, safe to ignore:
+- `Failed to load plugin b12x_loader ... cannot import name 'file_source_tensor'`
+  — the B12X plugin is baked into the image and expects an older vLLM API. It is
+  skipped harmlessly here, but means **the B12X recipe now has a plugin/vLLM
+  mismatch** if you switch back to it.
+- `Failed to import the DeepSelect extension (vllm._deepselect_C)`
+- `Unknown vLLM environment variable detected: VLLM_BASE_DIR`
+- `torch.compile is turned on, but the model ... does not support it`
+
+### Faster rebuilds: pull the prebuilt base image
+
+`eugr/spark-vllm:latest` on Docker Hub is ~11.2 GB and rebuilt nightly
+(`nightly-YYYYMMDD` tags), so `--setup` can pull it instead of building locally.
+Note it is a **different image** from `eugr/spark-vllm-b12x` — the B12X recipes
+need the b12x variant, built with `--exp-b12x`.
+
+### `NCCL error: unhandled system error` after a Docker upgrade (memlock)
+
+Symptom: vLLM dies during `init_device()` / `init_model_parallel_group` with
+
+```
+RuntimeError: NCCL error: unhandled system error (run with NCCL_DEBUG=INFO for details)
+```
+
+and with debug enabled the real error is:
+
+```
+NCCL WARN Call to ibv_reg_mr_iova2 failed with error Cannot allocate memory
+```
+
+**Cause: Docker's default `memlock` ulimit.** RDMA must *pin* (lock) the memory
+the NIC DMAs into, and a 284B model pins tens of GB. Docker 28 effectively left
+memlock unlimited; **Docker 29 caps it at 8 MB**, so `ibv_reg_mr` fails inside
+the container while the host is fine. Hit on 2026-09-13 immediately after the
+28.3.3 → 29.2.1 upgrade; the same config had served all morning.
+
+Misleading signals — don't chase these:
+- `ib_write_bw` between the nodes succeeds (108 Gb/s). It runs on the **host**,
+  where memlock is ample for its small buffers; only containers are capped.
+- NCCL debug shows the fabric found correctly (`Using network IB`, RoCE
+  200 Gb/s, channels built). Transport selection is *not* the problem.
+- `rdma link show` is ACTIVE, QSFP pings, TCP over QSFP works.
+
+Fix — on **both** nodes:
+
+```bash
+sudo mkdir -p /etc/docker
+echo '{"default-ulimits":{"memlock":{"Name":"memlock","Hard":-1,"Soft":-1}}}' \
+  | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker      # this destroys all containers
+```
+
+Verify with `docker run --rm ubuntu:24.04 bash -c 'ulimit -l'` → `unlimited`.
+
+**Order matters:** write `daemon.json` → restart Docker → *then* relaunch vLLM
+(`sudo systemctl restart vllm-cluster`). Restarting Docker kills `vllm_node` on
+both nodes, and vLLM (and Ray, on the Ray recipes) runs inside those containers,
+so it must be relaunched afterwards or it comes back under the old limit.
+
+### Getting NCCL debug output at all
+
+`CONTAINER_NCCL_DEBUG=INFO` is documented by `launch-cluster.sh`, but
+`run-recipe.sh` does **not** forward it — a recipe run produces zero `NCCL INFO`
+lines. Call the launcher directly instead:
+
+```bash
+cd ~/spark-vllm-docker
+./launch-cluster.sh -e NCCL_DEBUG=INFO -e NCCL_DEBUG_SUBSYS=INIT,NET,ENV \
+    -t vllm-node-b12x -n 192.168.100.10,192.168.100.11 \
+    exec vllm serve <model> --tensor-parallel-size 2 --max-model-len 65536
+```
+
+A small `--max-model-len` makes it fail fast at the NCCL stage instead of
+spending minutes on KV-cache sizing.
+
+**`exec` skips container creation if any node still has one**, printing
+`Cluster containers are already running. Skipping launch.` and then
+`Error response from daemon: No such container: vllm_node` when the other node
+has none. Env flags passed with `-e` are then silently not applied. Always run
+`./cleanup-containers.sh` (and confirm `docker ps -aq` is empty on *both* nodes)
+before a debug launch.
+
 ### `--download-only` STOPS the running cluster
 
 `run-recipe.sh <recipe> --download-only` is **not** side-effect free: the runner

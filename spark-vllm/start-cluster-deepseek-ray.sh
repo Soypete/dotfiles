@@ -30,10 +30,16 @@ SPARK_VLLM_DIR="${SPARK_VLLM_DIR:-$HOME/spark-vllm-docker}"
 RECIPE="${RECIPE:-deepseek-v4-flash}"
 NODES="${NODES:-192.168.100.10,192.168.100.11}"
 
+# The recipe defaults to max_model_len 500000, which overruns the per-device
+# buffer budget on 128GB GB10s:
+#   RuntimeError: buffer_size (1059061760 B) exceeds device memory budget (754274304 B)
+# 128K matches what MiniMax serves here and leaves headroom. Raise carefully.
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-131072}"
+
 # uvx/hf live in ~/.local/bin, which non-login shells (systemd, tmux) don't have
 # on PATH. The recipe runner shells out to hf-download.sh, which needs uvx.
 export PATH="$HOME/.local/bin:$PATH"
 
 cd "$SPARK_VLLM_DIR"
 
-exec ./run-recipe.sh "$RECIPE" -n "$NODES"
+exec ./run-recipe.sh "$RECIPE" -n "$NODES" --max-model-len "$MAX_MODEL_LEN"
