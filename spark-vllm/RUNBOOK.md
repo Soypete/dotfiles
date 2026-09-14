@@ -1,12 +1,40 @@
 # Spark vLLM Cluster Runbook
 
 Two-node NVIDIA Spark cluster serving an OpenAI-compatible API via
-`eugr/spark-vllm-docker` (which manages the containers, the Ray cluster, and
-`vllm serve`). This replaces the hand-rolled `ray/` scripts and their three
+`eugr/spark-vllm-docker` (which manages the containers, the distributed backend,
+and `vllm serve`). This replaces the hand-rolled `ray/` scripts and their three
 separate systemd units with one `vllm-cluster.service`.
 
+## Current state (2026-09-14)
+
+**Serving `deepseek-ai/DeepSeek-V4-Flash`** — stock `vllm-node` container on
+vLLM 0.29.1rc1, `START_SCRIPT=/home/soypete/start-cluster-deepseek-ray.sh`
+(recipe `deepseek-v4-flash-safetensors`). Verified: correct answers, 4-way
+concurrency, 2k-token prompts, ~1 s latency, `-tp2-` fingerprint, `Worker_TP`
+busy on both nodes, zero RDMA errors.
+
+| | |
+|---|---|
+| max_model_len | 131072 |
+| GPU KV cache | 464,928 tokens (23.82 GiB) |
+| Max concurrency | **3.55x** at full length (vs 1.10x on the old B12X config) |
+| Weights | 75.77 GiB/node of 128 GB |
+| gpu_memory_utilization | 0.90 |
+
+**Two things are pinned and must stay that way:**
+
+1. **Kernel `6.11.0-1016-nvidia` on both nodes.** `7.0.0-1019-nvidia` breaks RDMA
+   memory registration and takes down multi-node serving entirely — see
+   "kernel 7.0.0 breaks RDMA" below. GRUB defaults to 6.11 and the
+   `linux-nvidia-hwe-24.04` packages are `apt-mark hold`.
+2. **Docker `memlock` unlimited** via `/etc/docker/daemon.json` on both nodes.
+   Docker 29 defaults it to 8 MB, which also breaks RDMA — see the memlock
+   section below.
+
 **Models are switchable** — see "Switching models" below. MiniMax-M2.5-AWQ is the
-known-good fallback; DeepSeek-V4-Flash-0731 is the larger 284B MoE option.
+known-good fallback (Ray, stock container, weights cached on both nodes);
+DeepSeek-V4-Flash-0731 is the B12X/experimental option, whose in-image plugin is
+now mismatched against newer vLLM.
 
 **Endpoint:** port 8000 on the head node — consumed by `opencode/opencode.json`.
 The tailnet address depends on which tailnet the client is on:
@@ -142,7 +170,7 @@ Ray-specific troubleshooting below only applies to the Ray recipes:
 | Recipe / script | Executor | Container |
 |---|---|---|
 | `minimax-m2.5-awq` (`start-cluster.sh`) | **Ray** (`--distributed-executor-backend ray`) | `vllm-node` |
-| `deepseek-v4-flash` (`start-cluster-deepseek-ray.sh`) | **Ray** | `vllm-node` |
+| `deepseek-v4-flash` (`start-cluster-deepseek-ray.sh`) | recipe says Ray, but vLLM 0.29.1rc1 runs **NCCL** (MultiprocExecutor) anyway | `vllm-node` |
 | `deepseek-v4-flash-0731` (`start-cluster-deepseek.sh`) | **NCCL** (MultiprocExecutor) | `vllm-node-b12x` |
 
 Confirm from the running service rather than guessing:
@@ -271,6 +299,57 @@ Benign noise in this configuration, safe to ignore:
 (`nightly-YYYYMMDD` tags), so `--setup` can pull it instead of building locally.
 Note it is a **different image** from `eugr/spark-vllm-b12x` — the B12X recipes
 need the b12x variant, built with `--exp-b12x`.
+
+### "Only 5-6 GB free!" — unified memory makes `free` look alarming
+
+The GB10 has **unified memory**: GPU allocations come out of the same 121 GiB
+pool, so model weights and KV cache show up as *used* in `free -h`. A healthy
+serving node looks like this:
+
+```
+              total  used  free  shared  buff/cache  available
+Mem:          121Gi  116Gi 5.2Gi  2.4Gi     3.8Gi      5.2Gi
+Swap:          15Gi     0B
+```
+
+That 116 GiB is mostly the model, exactly as configured:
+
+| | |
+|---|---|
+| Weights | 75.77 GiB |
+| KV cache | 23.82 GiB |
+| = GPU total | ~99.6 GiB |
+| + process RSS, page cache, OS | → ~116 GiB |
+
+`gpu_memory_utilization: 0.90` *tells* vLLM to claim 90% of each node, so ~5-6 GiB
+free is the intended headroom, not exhaustion. Two corroborating signals:
+`VLLM::Worker_TP` shows only ~5 GiB **RSS** (the model is in GPU allocations, not
+process memory), and **`Swap: 0B` used** means nothing is under pressure.
+
+`nvidia-smi` reports `memory.used [N/A]` on this hardware for the same reason —
+there is no separate VRAM to report. Use `free -g` plus the vLLM startup lines
+(`Model loading took N GiB`, `GPU KV cache size: N tokens`) instead.
+
+Judge health by behaviour, not by free memory: concurrent requests succeeding,
+`vllm:kv_cache_usage_perc` from `/metrics`, and no swap usage. Lowering
+`gpu_memory_utilization` to 0.85 would free ~6 GiB/node but shrinks the KV cache
+and the concurrency multiplier — and 0.90 is what fixed the `buffer_size` failure.
+
+### Watching the cluster live
+
+No `nvtop` on either node (`sudo apt-get install -y nvtop` if you want it). A
+serviceable live view, run from either node:
+
+```bash
+watch -n 2 'curl -s http://192.168.100.10:8000/metrics \
+  | grep -E "kv_cache_usage_perc|num_requests_(running|waiting)\{|generation_tokens_total" \
+  | sed "s/{[^}]*}//"; \
+  nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,power.draw --format=csv,noheader; \
+  free -g | awk "NR==2{print \"mem \"\$3\"/\"\$2\"GB\"}"'
+```
+
+Note the metrics endpoint only exists on the **head** (the API server); the
+worker has no HTTP endpoint, so query `192.168.100.10:8000` from either node.
 
 ### `NCCL error: unhandled system error` after a Docker upgrade (memlock)
 
@@ -748,7 +827,7 @@ Results:
 |---|---|---|
 | `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | **Ray**, stock `vllm-node`, no experimental flags. Known-good fallback; weights cached on both nodes |
 | `deepseek-ai/DeepSeek-V4-Flash-0731` | ✅ Working | **NCCL, not Ray.** NVIDIA's experimental B12X stack (`vllm-node-b12x`, `B12X_MLA_SPARSE`, b12x MoE/linear, dspark spec decoding, 16 B12X env vars, instanttensor mod) |
-| `deepseek-ai/DeepSeek-V4-Flash` | ⏳ Downloaded 2026-09-13, unserved | **Ray**, stock `vllm-node`, no MoE backend flags, 3 env vars. The conservative DeepSeek path; keeps fp8 KV + mtp spec decoding. Still self-described "experimental SM120" |
+| `deepseek-ai/DeepSeek-V4-Flash` | ✅ **Working — current default (2026-09-14)** | Stock `vllm-node` on vLLM 0.29.1rc1, no MoE backend flags. 131072 ctx, 464,928-token KV cache, **3.55x** concurrency, 75.77 GiB/node. Needs `gpu_memory_utilization: 0.90` (see the working-config section). Despite `--distributed-executor-backend ray` in the recipe, this vLLM runs MultiprocExecutor/NCCL |
 | `unsloth/MiniMax-M3-GGUF` (UD-IQ3_XXS) | ❌ Blocked on vLLM | no minimax-m3 GGUF support anywhere in vLLM (in-tree or plugin) as of 2026-07; file staged on both nodes; llama.cpp is the viable route |
 | `zai-org/GLM-4.5-Air` | ❌ Not working | 99.6GB, never got working on dual Spark |
 
