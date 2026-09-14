@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  "model": "ray/deepseek-ai/DeepSeek-V4-Flash-0731",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
   "instructions": [
     "CLAUDE.md"
   ],
@@ -13,6 +13,34 @@
       "draft-plan": "allow",
       "write": "allow",
       "editor": "allow"
+    },
+    "external_directory": {
+      "/Users/soypete/code/haikei": "allow",
+      "/Users/soypete/code/haikei/*": "allow",
+      "/Users/soypete/code/haikei/**": "allow",
+      "/Users/soypete/code/pedro/pedro-agentware": "allow",
+      "/Users/soypete/code/pedro/pedro-agentware/*": "allow",
+      "/Users/soypete/code/pedro/pedro-agentware/**": "allow",
+      "/Users/soypete/code/pedro/pedro-tag": "allow",
+      "/Users/soypete/code/pedro/pedro-tag/*": "allow",
+      "/Users/soypete/code/pedro/pedro-tag/**": "allow",
+      "/Users/soypete/code/wiki": "allow",
+      "/Users/soypete/code/wiki/*": "allow",
+      "/Users/soypete/code/wiki/**": "allow",
+      "/tmp/cf-skills": "allow",
+      "/tmp/cf-skills/*": "allow",
+      "/tmp/cf-skills/**": "allow",
+      "/tmp/dvl-skills": "allow",
+      "/tmp/dvl-skills/*": "allow",
+      "/tmp/dvl-skills/**": "allow",
+      "/private/var/folders/**": "allow",
+      "/var/folders/**": "allow",
+      "/private/var/folders/*": "allow",
+      "/var/folders/*": "allow",
+      "/Users/soypete/code/haikei/.specs": "allow",
+      "/Users/soypete/code/haikei/.specs/*": "allow",
+      "/Users/soypete/code/haikei/.specs/**": "allow",
+      "*": "ask"
     }
   },
   "command": {
@@ -75,11 +103,11 @@
         "apiKey": "fake"
       },
       "models": {
-        "deepseek-ai/DeepSeek-V4-Flash-0731": {
-          "name": "DeepSeek V4 Flash 0731",
+        "deepseek-ai/DeepSeek-V4-Flash": {
+          "name": "DeepSeek V4 Flash",
           "limit": {
-            "context": 262144,
-            "output": 32000
+            "context": 98304,
+            "output": 24000
           }
         }
       }
