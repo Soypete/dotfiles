@@ -35,8 +35,9 @@ dotfiles path. Re-deploy after editing any of them:
 
 ```bash
 # from the Mac, in ~/dotfiles/spark-vllm
-scp start-cluster.sh start-cluster-deepseek.sh start-cluster-gguf.sh \
-    cleanup-containers.sh hf-download-gguf.sh spark-f5ea:/home/soypete/
+scp start-cluster.sh start-cluster-deepseek.sh start-cluster-deepseek-ray.sh \
+    start-cluster-gguf.sh cleanup-containers.sh hf-download-gguf.sh \
+    spark-f5ea:/home/soypete/
 ssh spark-f5ea 'chmod +x /home/soypete/*.sh'
 
 # systemd unit (only when the unit itself changed)
@@ -133,8 +134,79 @@ above on both nodes, then `sudo systemctl restart vllm-cluster`.
 `sudo bash -c 'printf "network:\n  version: 2\n  ethernets:\n    enp1s0f0np0:\n      addresses:\n        - 192.168.100.10/24\n" > /etc/netplan/99-qsfp-static.yaml && chmod 600 /etc/netplan/99-qsfp-static.yaml && netplan apply'`
 — use `.11` on the worker.)
 
+### Which executor am I actually on? (Ray vs NCCL — check this FIRST)
+
+**Not every model here uses Ray.** The executor comes from the recipe, and the
+Ray-specific troubleshooting below only applies to the Ray recipes:
+
+| Recipe / script | Executor | Container |
+|---|---|---|
+| `minimax-m2.5-awq` (`start-cluster.sh`) | **Ray** (`--distributed-executor-backend ray`) | `vllm-node` |
+| `deepseek-v4-flash` (`start-cluster-deepseek-ray.sh`) | **Ray** | `vllm-node` |
+| `deepseek-v4-flash-0731` (`start-cluster-deepseek.sh`) | **NCCL** (MultiprocExecutor) | `vllm-node-b12x` |
+
+Confirm from the running service rather than guessing:
+
+```bash
+# Ray path prints RayDistributedExecutor / RayWorkerWrapper;
+# NCCL path prints multiproc_executor.py and a tcp:// init method.
+journalctl -u vllm-cluster -b | grep -aiE 'multiproc_executor|RayWorkerWrapper|distributed_init_method'
+```
+
+On the NCCL path expect `distributed_init_method=tcp://192.168.100.10:29501
+backend=nccl` and `world_size=2`. **`ray status` will fail with "Could not find
+any running Ray instance" / a GCS timeout on 6379 — that is normal there, not a
+fault.** Ranks also log to their own node: `Worker_TP0` appears in the head's
+journal, `Worker_TP1` only in `docker logs vllm_node` on the worker.
+
+Quick proof both nodes are really computing (any executor): a completion's
+`system_fingerprint` ends in `-tp2-…`, and `ps` on the worker shows a busy
+`VLLM::Worker_TP` process holding tens of GB of RSS.
+
 ### Ray shows 1 GPU instead of 2
+*(Ray recipes only — see the executor table above.)*
 Node 2's container started without GPU access, or it's still connected from a previous crashed session. Restart both containers.
+
+### `--download-only` STOPS the running cluster
+
+`run-recipe.sh <recipe> --download-only` is **not** side-effect free: the runner
+tears the containers down as part of its lifecycle, so a download kicked off
+while serving will stop the service (`Stopping cluster... / Stopping worker
+node...` in the journal) and leave `vllm-cluster` inactive. Verified 2026-09-13.
+Plan downloads as downtime, or expect to `systemctl start vllm-cluster` after.
+
+### `/health` returns 200 while inference hangs
+
+When the worker's container dies but the head's survives, the API server keeps
+answering `/health` with 200 while the engine blocks waiting for the missing
+rank. The tell in the journal is:
+
+```
+shm_broadcast.py: No available shared memory broadcast block found in 60 seconds
+```
+
+**Always smoke-test with a real completion, not `/health`:**
+
+```bash
+curl -s -m 60 http://100.87.122.108:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"<served name>","messages":[{"role":"user","content":"say OK"}],"max_tokens":10}'
+```
+
+### Worker sshd stops completing handshakes (port open, no banner)
+
+Symptom: `ping` fine (<1 ms), `ip neigh` REACHABLE, TCP connect to 22 succeeds,
+but every ssh dies with `Connection timed out during banner exchange`. That is
+sshd unable to fork sessions — not a down or booting machine.
+
+Biggest self-inflicted cause: **piling up concurrent `ssh` probes to the worker**
+(monitoring one-liners in a loop) exhausts `MaxStartups`. Check and clear from
+the head with `pgrep -af 'ssh.*192.168.100.11'` then `pkill -f`. Note `pkill`
+run *through* such a connection kills your own session (exit 255).
+
+The worker also idles near 88% memory with the model resident, so genuine
+resource exhaustion is plausible. If clearing probes doesn't restore ssh, a
+reboot does — but the node is then unmanageable remotely until it comes back.
 
 ### "Current node has no GPU available"
 GPU is still reserved by a previous placement group. `launch-cluster.sh exec` won't fix this because it skips container restart when containers are already running. You must manually stop and remove containers on both nodes first:
@@ -151,6 +223,45 @@ export VLLM_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E '^node-[0-9]+'
 docker exec -it $VLLM_CONTAINER bash -c 'huggingface-cli download QuantTrio/MiniMax-M2.5-AWQ'
 ```
 Then always use `--compilation-config '{"cudagraph_mode": "PIECEWISE"}'`.
+
+### spark-771e dies silently — diagnosing power loss vs. a software crash
+
+Investigated 2026-09-13 after four worker deaths in six days (Sep 7, 8, 10, 12,
+13) while spark-f5ea sat at 42 days uptime on the same rack.
+
+**The decisive evidence is the SSD's own counter:**
+
+```bash
+sudo nvme smart-log /dev/nvme0n1 | grep -E 'unsafe_shutdowns|power_cycles|critical_warning|media_errors|percentage_used'
+```
+
+It read `unsafe_shutdowns: 18` of `power_cycles: 48` — the drive firmware
+counted 18 losses of power without warning, ~38% of all boots. Everything else
+was clean: `critical_warning 0`, `media_errors 0`, `percentage_used 0%`.
+
+Corroborating signs that it is **power, not software**:
+- `journalctl --list-boots` shows prior boots ending mid-sentence with **no**
+  shutdown record — grep `systemd-shutdown|Powering off|Reached target Shutdown`
+  across `-b -1/-2/-3` and get zero hits.
+- No kernel panic, no OOM kill, no thermal event, no Xid/NVRM GPU fault.
+- Deaths landed during idle `sysstat-collect` / `debian-sa1` cron runs, **not**
+  under inference load — which rules out "the model draws too much power".
+- The head node, same rack, never flinched.
+
+Also note the worker's **RTC resets to Jul 2025 on every boot** (likely a dead
+CMOS battery), so `docker ps` uptimes and log correlation on that node lie —
+`Up 17 hours` on a 10-minute-old boot. Treat worker timestamps with suspicion.
+
+Software updates do **not** address this: both nodes were brought to identical
+kernel 7.0.0-1019-nvidia / Docker 29.2.1 / NVIDIA 580.x on 2026-09-13 and the
+fault is independent of that. With the node on its own outlet behind a UPS, the
+remaining suspects are the PSU or the unit itself → warranty.
+
+`GRUB_TIMEOUT=10` + `GRUB_TIMEOUT_STYLE=menu` were set on both nodes so a failed
+kernel can be escaped from a console; the generated menu also exposes a **UEFI
+Firmware Settings** entry, which is the only way into AMI setup on these
+headless boxes (needed to check auto-power-on-after-AC-loss, since there is no
+`/proc/acpi/wakeup` and no BMC/ipmi device).
 
 ### Server crashes during inference (Node 2 ActorDiedError)
 OOM kill on Node 2 during a large context request.
@@ -464,7 +575,9 @@ Results:
 
 | Model | Status | Notes |
 |---|---|---|
-| `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | eugr/spark-vllm-docker, minimax_m2 parser, PIECEWISE required |
+| `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | **Ray**, stock `vllm-node`, no experimental flags. Known-good fallback; weights cached on both nodes |
+| `deepseek-ai/DeepSeek-V4-Flash-0731` | ✅ Working | **NCCL, not Ray.** NVIDIA's experimental B12X stack (`vllm-node-b12x`, `B12X_MLA_SPARSE`, b12x MoE/linear, dspark spec decoding, 16 B12X env vars, instanttensor mod) |
+| `deepseek-ai/DeepSeek-V4-Flash` | ⏳ Downloaded 2026-09-13, unserved | **Ray**, stock `vllm-node`, no MoE backend flags, 3 env vars. The conservative DeepSeek path; keeps fp8 KV + mtp spec decoding. Still self-described "experimental SM120" |
 | `unsloth/MiniMax-M3-GGUF` (UD-IQ3_XXS) | ❌ Blocked on vLLM | no minimax-m3 GGUF support anywhere in vLLM (in-tree or plugin) as of 2026-07; file staged on both nodes; llama.cpp is the viable route |
 | `zai-org/GLM-4.5-Air` | ❌ Not working | 99.6GB, never got working on dual Spark |
 
