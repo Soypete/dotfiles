@@ -1,0 +1,26 @@
+# Tracked copy of /etc/default/vllm-cluster on spark-f5ea — the model selector.
+# vllm-cluster.service runs $START_SCRIPT from this file (falling back to MiniMax
+# if it is absent). Only one model runs at a time; these checkpoints cannot share
+# 128GB/node. Switch with:
+#   sudo systemctl stop vllm-cluster
+#   sudo vi /etc/default/vllm-cluster      # change START_SCRIPT
+#   sudo systemctl start vllm-cluster
+#
+# Switching models means updating BOTH ends — this file on the Spark and the
+# `ray` provider's model id in opencode/opencode.json. The server matches on the
+# exact model id, so a mismatch leaves :8000 up but returns 404 model-not-found.
+
+# DeepSeek-V4-Flash — CURRENT (2026-09-14). Stock vllm-node container on vLLM
+# 0.29.1rc1, no MoE backend flags. 131072 ctx, 3.55x concurrency.
+# Requires gpu_memory_utilization 0.90 (recipe deepseek-v4-flash-safetensors).
+START_SCRIPT=/home/soypete/start-cluster-deepseek-ray.sh
+
+# DeepSeek-V4-Flash-0731 — NVIDIA's EXPERIMENTAL B12X stack (b12x container,
+# B12X_MLA_SPARSE, b12x MoE/linear, dspark, 16 B12X env vars). 785K context but
+# only 1.10x concurrency, and its in-image b12x plugin is now mismatched against
+# newer vLLM.
+#START_SCRIPT=/home/soypete/start-cluster-deepseek.sh
+
+# MiniMax-M2.5-AWQ — known-good fallback (Ray, stock container, no experimental
+# anything). Weights cached on both nodes.
+#START_SCRIPT=/home/soypete/start-cluster.sh

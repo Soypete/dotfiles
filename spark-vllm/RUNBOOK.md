@@ -42,6 +42,12 @@ The tailnet address depends on which tailnet the client is on:
 - other tailnet:  `http://100.87.122.109:8000/v1`
 Both are the same machine (spark-f5ea); it presents the same SSH host key on each.
 
+That is spark-f5ea's tailscale0 address on the personal tailnet
+(`tail6fbc5.ts.net`). The same machine is `100.87.122.108` on the haikeilabs
+tailnet, so from a Mac logged into haikeilabs the `.109` address will not ping
+even though the box is up and the config is correct. Check which tailnet you are
+on (`tailscale status`) before concluding the endpoint address is stale.
+
 ## Hardware
 - **spark-f5ea** (Node 1, head): 192.168.1.9 LAN, 192.168.100.10 QSFP
 - **spark-771e** (Node 2, worker): 192.168.1.84 LAN, 192.168.100.11 QSFP
@@ -73,13 +79,54 @@ scp systemd/vllm-cluster.service spark-f5ea:/tmp/
 ssh spark-f5ea 'sudo mv /tmp/vllm-cluster.service /etc/systemd/system/ \
                 && sudo systemctl daemon-reload'
 
-# model-selection env file (first install, or when switching models)
-scp systemd/vllm-cluster.env.example spark-f5ea:/tmp/
-ssh spark-f5ea 'sudo mv /tmp/vllm-cluster.env.example /etc/default/vllm-cluster'
+# model selector (first install, or when switching the default model profile).
+# default/vllm-cluster is the tracked copy of what is deployed;
+# systemd/vllm-cluster.env.example documents all three START_SCRIPT options.
+scp default/vllm-cluster spark-f5ea:/tmp/
+ssh spark-f5ea 'sudo mv /tmp/vllm-cluster /etc/default/vllm-cluster'
 ```
 
 Editing the copy on the Spark directly will be silently overwritten by the next
 deploy — change it here and re-scp.
+
+## Model selection
+
+`vllm-cluster.service` does not hardcode a model. It runs `$START_SCRIPT`, which
+comes from `/etc/default/vllm-cluster` (tracked here as `default/vllm-cluster`),
+falling back to MiniMax if that file is absent. Only one model runs at a time —
+167GB of DeepSeek weights and MiniMax's ~58GB/node cannot share 128GB/node.
+
+| `START_SCRIPT` | Model | Status |
+|---|---|---|
+| `start-cluster-deepseek.sh` | DeepSeek-V4-Flash-0731 | ✅ current default |
+| `start-cluster.sh` | MiniMax-M2.5-AWQ | ✅ known-good fallback |
+
+Switching models means updating **both** ends: `/etc/default/vllm-cluster` on the
+Spark and the `ray` provider's model id in `opencode/opencode.json` (both models
+are listed there; change the top-level `model` key). The server matches on exact
+model id, so a mismatch leaves the endpoint up but returns model-not-found rather
+than a connection error.
+
+### DeepSeek-V4-Flash-0731 startup profile (2026-09-08, first successful serve)
+
+~4 minutes cold to `Application startup complete.`:
+
+| Phase | Time |
+|---|---|
+| Weight load (InstantTensor draft-loader) | 31s + 45s |
+| `torch.compile` (AOT cache hit) | 1.8s |
+| Profiling/warmup run | 18s |
+| DeepSeek V4 mHC kernel warmup | 4.7s |
+
+Served `max_model_len` is **785,152**, and vLLM reports `GPU KV cache size:
+861,420 tokens` — but max concurrency at full context is only **1.10x**. One
+maximum-length request consumes nearly the entire KV pool, so concurrent requests
+queue rather than run in parallel. The client is therefore set to `context:
+200000` rather than anything near the ceiling, which leaves real headroom for
+concurrency and for OpenCode's compaction behavior.
+
+`SymmMemCommunicator: Device capability 12.1 not supported` during startup is
+benign on GB10 — it falls back to a standard communicator.
 
 ## Start Sequence
 
@@ -150,6 +197,36 @@ Head node isn't running yet, or QSFP interface has no IP. Check:
 ip addr show enp1s0f0np0   # should show 192.168.100.x
 docker ps                  # head container should be running on spark-f5ea
 ```
+
+### "Error: No active IB interfaces found." (crash-loop every 60s)
+
+`launch-cluster.sh`/`run-recipe.sh` autodetect the QSFP fabric before starting
+vLLM. With no link they exit 1 immediately — the model never loads, nothing ever
+binds :8000, and `Restart=on-failure` retries forever. A restart counter in the
+hundreds or thousands means this has been looping for days.
+
+**This is a link-layer failure, not the netplan failure below.** Both leave
+`enp1s0f0np0` without a `192.168.100.x` address, so `ip addr` alone can't tell
+them apart. `carrier` is what separates them:
+
+```bash
+cat /sys/class/net/enp1s0f0np0/carrier   # 0 = no physical link, 1 = link up
+ip neigh show | grep 192.168.1.84        # INCOMPLETE/FAILED = worker not on the wire
+```
+
+- `carrier=0` → the other Spark is off, or the QSFP cable is unseated/failed.
+  Config is irrelevant; no amount of `netplan apply` will fix it. Sparks have no
+  status LEDs, so confirm from the head node rather than by looking at the box.
+- `carrier=1` but no address → genuine netplan problem; see the next section.
+
+Confirmed cause of the 2026-09-06 outage: the worker left the network shortly
+after a routine `systemctl restart` (the ExecStop shutdown in the journal is
+clean — no OOM, no CUDA error), so the restart's ExecStart had no fabric to
+detect and looped 1,665 times over two days.
+
+Note the head node's tailscale0 address (`100.87.122.109`) stays up throughout,
+since it is unrelated to the QSFP fabric — the endpoint being unreachable while
+the host still pings is expected here, not evidence of a network problem.
 
 ### Boot hangs on "Waiting for creating a placement group" with 1 GPU
 QSFP static IPs are gone (interfaces fell back to link-local 169.254.x), so
@@ -826,7 +903,7 @@ Results:
 | Model | Status | Notes |
 |---|---|---|
 | `QuantTrio/MiniMax-M2.5-AWQ` | ✅ Working | **Ray**, stock `vllm-node`, no experimental flags. Known-good fallback; weights cached on both nodes |
-| `deepseek-ai/DeepSeek-V4-Flash-0731` | ✅ Working | **NCCL, not Ray.** NVIDIA's experimental B12X stack (`vllm-node-b12x`, `B12X_MLA_SPARSE`, b12x MoE/linear, dspark spec decoding, 16 B12X env vars, instanttensor mod) |
+| `deepseek-ai/DeepSeek-V4-Flash-0731` | ✅ Working | **NCCL, not Ray.** NVIDIA's experimental B12X stack (`vllm-node-b12x`, `B12X_MLA_SPARSE`, b12x MoE/linear, dspark spec decoding, 16 B12X env vars, instanttensor mod). First serve 2026-09-08, ~4 min cold start, 785K context but only 1.10x concurrency. Its in-image b12x plugin is now mismatched against newer vLLM |
 | `deepseek-ai/DeepSeek-V4-Flash` | ✅ **Working — current default (2026-09-14)** | Stock `vllm-node` on vLLM 0.29.1rc1, no MoE backend flags. 131072 ctx, 464,928-token KV cache, **3.55x** concurrency, 75.77 GiB/node. Needs `gpu_memory_utilization: 0.90` (see the working-config section). Despite `--distributed-executor-backend ray` in the recipe, this vLLM runs MultiprocExecutor/NCCL |
 | `unsloth/MiniMax-M3-GGUF` (UD-IQ3_XXS) | ❌ Blocked on vLLM | no minimax-m3 GGUF support anywhere in vLLM (in-tree or plugin) as of 2026-07; file staged on both nodes; llama.cpp is the viable route |
 | `zai-org/GLM-4.5-Air` | ❌ Not working | 99.6GB, never got working on dual Spark |
