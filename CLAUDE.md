@@ -74,6 +74,19 @@ The repository follows a modular structure where each tool has its own directory
   - Scripts run from `/home/soypete/` on spark-f5ea, scp'd from here —
     see RUNBOOK "Deploying these scripts to the Sparks"
 
+- **exo/**: Exo cluster configuration for distributed AI inference
+  - `config/`: Configuration files and documentation
+  - `scripts/`: Management scripts (start-cluster.sh, status.sh, models.sh)
+  - `logs/`: Cluster log files
+  - Cluster namespace: `soypete_tech` (`$EXO_LIBP2P_NAMESPACE`, set in `zsh/zsh_profile`)
+  - Hardware: Mac Studio + the 2 Spark nodes on the 192.168.1.x LAN
+  - API endpoint: `http://localhost:52415` (`$EXO_API_URL`)
+  - Separate from `spark-vllm/` above — exo and the vLLM cluster are different
+    stacks that happen to share the Sparks; only one should own the GPUs at a time.
+  - Claude Code can run against it by exporting `ANTHROPIC_BASE_URL="${EXO_API_URL}/v1"`,
+    an empty `ANTHROPIC_AUTH_TOKEN`, and `ANTHROPIC_MODEL` set to an exo model id.
+    `zsh/zsh_profile` keeps these commented out so the default Anthropic API is used.
+
 - **crush/**: Crush AI editor configuration
   - `crush.json`: LSP configurations for Go, TypeScript, and Nix
   - Defines local LLM providers (pedro on tailnet, ollama locally)
