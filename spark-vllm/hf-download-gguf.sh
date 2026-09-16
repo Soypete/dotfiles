@@ -23,7 +23,7 @@ QUANT="${QUANT:-UD-IQ3_XXS}"
 # Must be under a path launch-cluster.sh mounts into the container
 # (~/.cache/huggingface is mounted by eugr/spark-vllm-docker).
 DEST="${DEST:-$HOME/.cache/huggingface/gguf}"
-WORKER="${WORKER:-169.254.91.57}"   # worker sshd is not reachable on the QSFP IP (192.168.100.11); this link still moves ~500MB/s
+WORKER="${WORKER:-192.168.100.11}"   # QSFP link, ~500MB/s. The old link-local 169.254.91.57 no longer answers (verified 2026-08-31); 192.168.1.84 (LAN) also works.
 DELETE_SHARDS="${DELETE_SHARDS:-0}"
 
 GGUF_SPLIT="${GGUF_SPLIT:-}"
