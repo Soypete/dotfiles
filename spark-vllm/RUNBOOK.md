@@ -48,6 +48,77 @@ tailnet, so from a Mac logged into haikeilabs the `.109` address will not ping
 even though the box is up and the config is correct. Check which tailnet you are
 on (`tailscale status`) before concluding the endpoint address is stale.
 
+### MagicDNS name and tailnet-only HTTPS (Tailscale Serve)
+
+**MagicDNS already works without Serve.** spark-f5ea is owned by the personal
+tailnet and shared into haikeilabs. From either one, its FQDN
+`spark-f5ea.tail6fbc5.ts.net` resolves to the right address: `.108` from a
+haikeilabs client, `.109` from a personal one. So
+`http://spark-f5ea.tail6fbc5.ts.net:8000/v1` works from both tailnets, and
+you don't need to pick an IP per tailnet. Verified 2026-09-23 from a haikeilabs
+Mac.
+
+Serve is only needed when a client requires **HTTPS**, such as the Kei
+model-profile/connector path. State as audited on 2026-09-23 (Serve **not yet
+enabled**):
+
+| | |
+|---|---|
+| vLLM bind | `0.0.0.0:8000` (recipe `defaults.host/port`), OpenAI-compatible, `/health` → 200 |
+| Model id | `deepseek-ai/DeepSeek-V4-Flash`, `max_model_len` 131072 |
+| Auth | **none** — vLLM runs without `--api-key`; tailnet ACLs are the only gate |
+| Tailscale | 1.102.4, MagicDNS on, HTTPS certs enabled (`CertDomains` = the FQDN) |
+| Serve / Funnel | no config; nothing else listens on :443 |
+
+Enable it on spark-f5ea. This is tailnet-only; do **not** use `tailscale funnel`,
+which would make the endpoint public:
+
+```bash
+sudo tailscale serve --bg --https=443 http://127.0.0.1:8000
+tailscale serve status        # expect: https://spark-f5ea.tail6fbc5.ts.net (tailnet only)
+tailscale funnel status       # must NOT show the node as public
+```
+
+Health check, from any client on either tailnet:
+
+```bash
+curl -fsS https://spark-f5ea.tail6fbc5.ts.net/health
+curl -fsS https://spark-f5ea.tail6fbc5.ts.net/v1/models | jq -r '.data[].id'
+```
+
+The resulting base URL is `https://spark-f5ea.tail6fbc5.ts.net/v1`. Rollback:
+
+```bash
+sudo tailscale serve --https=443 off   # or: sudo tailscale serve reset
+```
+
+Things to know before enabling:
+
+- **`--bg` persists.** The config lives in tailscaled state and survives
+  reboots and restarts of `vllm-cluster`. It is independent of the systemd unit.
+  While vLLM is down or loading, Serve returns 502.
+- **TLS terminates in tailscaled.** It uses a Let's Encrypt cert for the FQDN,
+  issued on the first HTTPS request, so the first request can take a few
+  seconds. The hostname then shows up in public Certificate Transparency logs.
+  Only the name is published, not the endpoint. Clients must use the FQDN;
+  `https://100.87.122.108` fails certificate verification.
+- **The bind address can stay `0.0.0.0`.** Serve proxies to `127.0.0.1:8000`,
+  so either bind works. Keeping `0.0.0.0` means existing `http://…:8000`
+  clients, such as `opencode.json`, keep working during migration. The cost is
+  that :8000 stays **unauthenticated on the LAN** (192.168.1.9) and the QSFP
+  link. Once every client uses HTTPS, you can tighten it by appending
+  `--host 127.0.0.1` to the `run-recipe.sh` call. `run-recipe.py` supports
+  `--host` and `--port` overrides.
+- **There is still no auth.** Serve adds `Tailscale-User-*` headers, but vLLM
+  ignores them. Anyone the ACLs let reach the node can use the model. If the Kei
+  connector expects a bearer token, add `--api-key` to the serve command via the
+  recipe, and store the key in secrets, not in this repo.
+- **Kei connector reachability is unverified.** Kei's cluster nodes are
+  `tagged-devices` on haikeilabs, and spark-f5ea is *shared in* from the
+  personal tailnet. Node sharing grants access to users, so check that a tagged
+  or operator-proxied client can reach the node. Run the `curl /health` check
+  above from the Kei side before pointing a model profile at it.
+
 ## Hardware
 - **spark-f5ea** (Node 1, head): 192.168.1.9 LAN, 192.168.100.10 QSFP
 - **spark-771e** (Node 2, worker): 192.168.1.84 LAN, 192.168.100.11 QSFP
