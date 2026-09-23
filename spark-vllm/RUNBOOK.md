@@ -59,8 +59,11 @@ you don't need to pick an IP per tailnet. Verified 2026-09-23 from a haikeilabs
 Mac.
 
 Serve is only needed when a client requires **HTTPS**, such as the Kei
-model-profile/connector path. State as audited on 2026-09-23 (Serve **not yet
-enabled**):
+model-profile/connector path. **Serve is enabled as of 2026-09-23**:
+`https://spark-f5ea.tail6fbc5.ts.net/v1` is live (tailnet only). `/health`,
+`/v1/models`, `/metrics` and chat completions were verified over HTTPS. The
+cert is from Let's Encrypt and expires 2026-12-22; tailscaled renews it
+automatically.
 
 | | |
 |---|---|
@@ -68,9 +71,9 @@ enabled**):
 | Model id | `deepseek-ai/DeepSeek-V4-Flash`, `max_model_len` 131072 |
 | Auth | **none** — vLLM runs without `--api-key`; tailnet ACLs are the only gate |
 | Tailscale | 1.102.4, MagicDNS on, HTTPS certs enabled (`CertDomains` = the FQDN) |
-| Serve / Funnel | no config; nothing else listens on :443 |
+| Serve / Funnel | `https:443 / → http://127.0.0.1:8000`, tailnet only; no Funnel |
 
-Enable it on spark-f5ea. This is tailnet-only; do **not** use `tailscale funnel`,
+To enable it (or re-enable it after a `reset`), run this on spark-f5ea. It is tailnet-only; do **not** use `tailscale funnel`,
 which would make the endpoint public:
 
 ```bash
