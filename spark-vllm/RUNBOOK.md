@@ -72,16 +72,25 @@ Net effect: anyone who learns the hostname can use these two DGX Sparks for free
 inference or drive them under load. Tailscale hostnames appear in certificate
 transparency logs, which are routinely scraped, so the name is not a secret.
 
-**Before leaving Funnel on, add real auth:**
+**There is deliberately no API key right now.** One was added and then removed on
+2026-09-24 — Funnel is on only for short-lived testing and will be turned off
+afterwards, at which point tailnet-only access is the security boundary again (as
+it was for the weeks before). `opencode.json`'s `apiKey` therefore stays the
+ignored placeholder `"fake"`.
+
+If Funnel is ever left on for real use, add auth:
 
 ```yaml
 # recipes/deepseek-v4-flash-safetensors.yaml, in the serve command
       --api-key "$VLLM_API_KEY" \
 ```
 
-then `sudo systemctl restart vllm-cluster`, set the same value as `apiKey` in
-`opencode/opencode.json`, and confirm an unauthenticated request now returns
-**401** rather than 200.
+then `sudo systemctl restart vllm-cluster` (~5 min model reload — the endpoint is
+down throughout, and Funnel returns 502 until the backend is up), set the same
+value as `apiKey` in `opencode/opencode.json`, and confirm an unauthenticated
+request now returns **401** rather than 200. Prefer sourcing the value from
+`/etc/default/vllm-cluster` (root-only) over writing it into the recipe in
+plaintext.
 
 **To turn Funnel off** (leaves `tailscale serve` and tailnet access intact):
 
