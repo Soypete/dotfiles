@@ -48,6 +48,92 @@ tailnet, so from a Mac logged into haikeilabs the `.109` address will not ping
 even though the box is up and the config is correct. Check which tailnet you are
 on (`tailscale status`) before concluding the endpoint address is stale.
 
+## ⚠️ Tailscale Funnel is ON — the endpoint is PUBLIC and UNAUTHENTICATED
+
+As of 2026-09-24 `spark-f5ea` runs `tailscale funnel`, so the model endpoint is
+reachable **from the open internet**, not just the tailnet:
+
+```
+$ tailscale funnel status
+https://spark-f5ea.tail6fbc5.ts.net (Funnel on)
+|-- / proxy http://127.0.0.1:8000
+```
+
+Verified exposed: public DNS (`dig @8.8.8.8 spark-f5ea.tail6fbc5.ts.net`) returns
+Funnel ingress addresses (208.111.34.x/35.x), not a 100.x tailnet address, and an
+**unauthenticated** POST to `/v1/chat/completions` returns a completion.
+
+**vLLM is running without `--api-key`.** Requests with no `Authorization` header
+and requests with a deliberately wrong bearer token both return 200. The `apiKey`
+in `opencode/opencode.json` is the literal string `"fake"` — a client-side
+placeholder the OpenAI SDK requires, which the server never validates.
+
+Net effect: anyone who learns the hostname can use these two DGX Sparks for free
+inference or drive them under load. Tailscale hostnames appear in certificate
+transparency logs, which are routinely scraped, so the name is not a secret.
+
+**Before leaving Funnel on, add real auth:**
+
+```yaml
+# recipes/deepseek-v4-flash-safetensors.yaml, in the serve command
+      --api-key "$VLLM_API_KEY" \
+```
+
+then `sudo systemctl restart vllm-cluster`, set the same value as `apiKey` in
+`opencode/opencode.json`, and confirm an unauthenticated request now returns
+**401** rather than 200.
+
+**To turn Funnel off** (leaves `tailscale serve` and tailnet access intact):
+
+```bash
+sudo tailscale funnel --https=443 off
+tailscale funnel status          # should no longer say "Funnel on"
+```
+
+### Why Funnel was enabled
+
+The Kei EKS cluster could not reach the Spark over the tailnet. PR
+HaikeiLabs/kei#599 added a Tailscale egress ProxyGroup, and every Kubernetes-side
+piece works — pods resolve `spark-f5ea.tail6fbc5.ts.net` to the egress proxy via
+a CoreDNS stub, the proxy is `Running` and tagged `tag:k8s`, and the haikeilabs
+policy already grants `tag:k8s -> 100.87.122.108 tcp:443,8000`.
+
+The blocker is **visibility, not permission**:
+
+```
+error fetching backend addresses for "spark-f5ea.tail6fbc5.ts.net":
+could not find Tailscale node, service or 4via6 address; it either does not
+exist, or not reachable because of ACLs
+```
+
+`tailscale status` inside `kei-egress-0` shows only 6 nodes — itself plus five
+devices owned by `miriah@`/`colin@` (both in `group:cluster-developers`, which has
+a `dst: ["*"]` grant). It sees **no tagged devices at all**, not even its sibling
+`kei-egress-1`. The Spark lives on the *personal* tailnet (`tail6fbc5`,
+`captainnobody1@gmail.com`) and is shared to users; tagged devices have no user
+identity, and a grant whose destination is a bare IP literal does not place a
+cross-tailnet node into the netmap. So the proxy is authorised for an address it
+cannot resolve to a peer — hence "does not exist" rather than "denied".
+
+Lower-risk alternatives that were not tried before enabling Funnel:
+
+1. Add a named host to the **haikeilabs** policy and use it as the grant
+   destination instead of the bare IP — a named host can resolve into the netmap
+   where an IP literal does not:
+   ```json
+   "hosts": { "spark-f5ea": "100.87.122.108" },
+   ...
+   { "src": ["tag:k8s"], "dst": ["spark-f5ea:443"], "ip": ["tcp:443"] }
+   ```
+2. **Move the Spark onto the haikeilabs tailnet** (`--advertise-tags=tag:model-host`,
+   which that policy already defines). It then becomes a native node visible to
+   `tag:k8s` and the existing grant works unchanged. Costs a MagicDNS rename, so
+   the model profile URL, the CoreDNS stub in `infra/manifests/tailscale/dnsconfig.yaml`,
+   `tailscale serve` (new cert) and OpenCode's `baseURL` all need updating.
+
+Option 2 also removes the standing fragility that a production Kei endpoint
+depends on a device owned by a personal Google account.
+
 ## Hardware
 - **spark-f5ea** (Node 1, head): 192.168.1.9 LAN, 192.168.100.10 QSFP
 - **spark-771e** (Node 2, worker): 192.168.1.84 LAN, 192.168.100.11 QSFP
