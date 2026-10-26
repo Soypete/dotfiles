@@ -27,7 +27,7 @@
 set -euo pipefail
 
 SPARK_VLLM_DIR="${SPARK_VLLM_DIR:-$HOME/spark-vllm-docker}"
-RECIPE="${RECIPE:-deepseek-v4-flash}"
+RECIPE="${RECIPE:-deepseek-v4-flash-safetensors}"
 NODES="${NODES:-192.168.100.10,192.168.100.11}"
 
 # The recipe defaults to max_model_len 500000, which overruns the per-device
