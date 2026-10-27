@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": true,
-  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "model": "ray/nvidia/GLM-5.3-Flash-FP4-Local",
   "instructions": [
     "CLAUDE.md"
   ],
@@ -12,7 +12,21 @@
     "skill": {
       "draft-plan": "allow",
       "write": "allow",
-      "editor": "allow"
+      "editor": "allow",
+      "agentware-sdk": "allow",
+      "haikei": "allow",
+      "herdr-orchestrator": "allow",
+      "kei-api": "allow",
+      "kei-api-conventions": "allow",
+      "kei-cli": "allow",
+      "kei-credential-rotation": "allow",
+      "kei-harness-policy": "allow",
+      "kei-harness-setup": "allow",
+      "kei-proxy": "allow",
+      "kei-runtime-setup": "allow",
+      "kei-service-ops": "allow",
+      "kei-setup-doctor": "allow",
+      "wiki": "allow"
     },
     "external_directory": {
       "/Users/soypete/code/haikei": "allow",
@@ -41,6 +55,44 @@
       "/Users/soypete/code/haikei/.specs/*": "allow",
       "/Users/soypete/code/haikei/.specs/**": "allow",
       "*": "ask"
+    },
+    "bash": {
+      "ls": "allow",
+      "ls *": "allow",
+      "pedro-gh pr merge": "allow",
+      "pedro-gh pr merge *": "allow",
+      "pwd": "allow",
+      "pwd *": "allow",
+      "cd": "allow",
+      "cd *": "allow",
+      "gh pr checks": "allow",
+      "gh pr checks *": "allow",
+      "gh pr view": "allow",
+      "gh pr view *": "allow",
+      "git diff": "allow",
+      "git diff *": "allow",
+      "git log": "allow",
+      "git log *": "allow",
+      "git status": "allow",
+      "git status *": "allow",
+      "kei harness list": "allow",
+      "kei harness list *": "allow",
+      "kei-proxy policy show": "allow",
+      "kei-proxy policy show *": "allow",
+      "wiki search": "allow",
+      "wiki search *": "allow",
+      "git push --force": "deny",
+      "git push --force *": "deny",
+      "helm uninstall": "deny",
+      "helm uninstall *": "deny",
+      "kubectl delete": "deny",
+      "kubectl delete *": "deny",
+      "rm -rf": "deny",
+      "rm -rf *": "deny",
+      "terraform destroy": "deny",
+      "terraform destroy *": "deny",
+      "pedro-gh api -X PUT": "allow",
+      "pedro-gh api -X PUT *": "allow"
     }
   },
   "command": {
@@ -99,10 +151,17 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Spark Cluster (spark-f5ea)",
       "options": {
-        "baseURL": "http://100.87.122.108:8000/v1",
+        "baseURL": "http://spark-f5ea:8000/v1",
         "apiKey": "fake"
       },
       "models": {
+        "nvidia/GLM-5.3-Flash-FP4-Local": {
+          "name": "GLM 5.3 Flash (FP4)",
+          "limit": {
+            "context": 460000,
+            "output": 32000
+          }
+        },
         "deepseek-ai/DeepSeek-V4-Flash": {
           "name": "DeepSeek V4 Flash",
           "limit": {
@@ -133,6 +192,27 @@
             "context": 262144,
             "output": 32000
           }
+        },
+        "nemotron-3.5-lightning": {
+          "name": "Nemotron 3.5 Lightning (staged)",
+          "limit": {
+            "context": 262144,
+            "output": 32000
+          }
+        },
+        "gemma-4-26b-a4b-it": {
+          "name": "Gemma 4 26B-A4B MoE (staged)",
+          "limit": {
+            "context": 131072,
+            "output": 32000
+          }
+        },
+        "gemma-4-31b-it": {
+          "name": "Gemma 4 31B it (staged)",
+          "limit": {
+            "context": 65536,
+            "output": 16000
+          }
         }
       }
     },
@@ -140,7 +220,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "pedrogpt via haikei tailnet (llama.cpp, RTX 5090)",
       "options": {
-        "baseURL": "http://100.121.229.113:8000/v1",
+        "baseURL": "http://100.93.195.29:8000/v1",
         "apiKey": "fake"
       },
       "models": {

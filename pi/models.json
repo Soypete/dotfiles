@@ -1,0 +1,27 @@
+{
+  "$schema": "https://pi.dev/schemas/models.schema.json",
+  "providers": {
+    "haikei-deepseek": {
+      "name": "Haikei Spark cluster (self-hosted, spark-f5ea)",
+      "baseUrl": "http://spark-f5ea:8000/v1",
+      "api": "openai-completions",
+      "apiKey": "none",
+      "models": [
+        { "id": "nvidia/GLM-5.3-Flash-FP4-Local", "name": "GLM 5.3 Flash (FP4)", "reasoning": false, "contextWindow": 131072, "maxTokens": 32000 },
+        { "id": "deepseek-ai/DeepSeek-V4-Flash", "name": "DeepSeek V4 Flash", "reasoning": false, "contextWindow": 131072, "maxTokens": 16384 }
+      ]
+    },
+    "haikei-qwen": {
+      "name": "Haikei pedrogpt (self-hosted, llama.cpp RTX 5090)",
+      "baseUrl": "http://pedrogpt:8000/v1",
+      "api": "openai-completions",
+      "apiKey": "none",
+      "models": [
+        { "id": "qwen3.8-27b", "name": "Qwen 3.8 27B", "reasoning": false, "contextWindow": 65536, "maxTokens": 16384 },
+        { "id": "nemotron-3.5-lightning", "name": "Nemotron 3.5 Lightning (staged)", "reasoning": false, "contextWindow": 262144, "maxTokens": 32000 },
+        { "id": "gemma-4-26b-a4b-it", "name": "Gemma 4 26B-A4B MoE (staged)", "reasoning": false, "contextWindow": 131072, "maxTokens": 32000 },
+        { "id": "gemma-4-31b-it", "name": "Gemma 4 31B it (staged)", "reasoning": false, "contextWindow": 65536, "maxTokens": 16384 }
+      ]
+    }
+  }
+}

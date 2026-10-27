@@ -10,10 +10,15 @@
 # `ray` provider's model id in opencode/opencode.json. The server matches on the
 # exact model id, so a mismatch leaves :8000 up but returns 404 model-not-found.
 
-# DeepSeek-V4-Flash — CURRENT (2026-09-14). Stock vllm-node container on vLLM
-# 0.29.1rc1, no MoE backend flags. 131072 ctx, 3.55x concurrency.
+# GLM-5.3-Flash — CURRENT (2026-10-26). nvidia/GLM-5.3-Flash-FP4-Local, 320B/18B-active
+# MoE, ~166GiB, tp=2, 500k ctx, MTP, B12X container (experimental). Recipe:
+# glm-5.3-flash. API id: nvidia/GLM-5.3-Flash-FP4-Local (matches opencode.json).
+START_SCRIPT=/home/soypete/start-cluster-glm.sh
+
+# DeepSeek-V4-Flash — PREVIOUS (2026-09-14); rollback target. Stock vllm-node
+# container on vLLM 0.29.1rc1, no MoE backend flags. 131072 ctx, 3.55x concurrency.
 # Requires gpu_memory_utilization 0.90 (recipe deepseek-v4-flash-safetensors).
-START_SCRIPT=/home/soypete/start-cluster-deepseek-ray.sh
+#START_SCRIPT=/home/soypete/start-cluster-deepseek-ray.sh
 
 # DeepSeek-V4-Flash-0731 — NVIDIA's EXPERIMENTAL B12X stack (b12x container,
 # B12X_MLA_SPARSE, b12x MoE/linear, dspark, 16 B12X env vars). 785K context but

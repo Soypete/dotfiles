@@ -44,17 +44,23 @@ The repository follows a modular structure where each tool has its own directory
   - `skills/`: Global OpenCode skills (graphify, llmwiki, mempalace).
     See `skills/HOW_TO_WRITE_SKILLS.md` for the format and permission model.
   - Providers:
-    - `ray` — the `spark-vllm/` cluster (spark-f5ea) at
-      `http://100.87.122.108:8000/v1` on the haikei tailnet
-      (`http://100.87.122.109:8000/v1` on the other tailnet — same machine)
+    - `ray` — the `spark-vllm/` cluster (spark-f5ea) via MagicDNS
+      `http://spark-f5ea:8000/v1`. Use names, not IPs: Tailscale IPs change when a
+      node is re-registered (the old `100.87.122.x` / `100.121.229.x` addresses are dead).
     - `pedrogpt` — llama.cpp on RTX 5090 via MagicDNS `http://pedrogpt:8000/v1`
-    - `pedrogpt-haikei` — the same box at `http://100.121.229.113:8000/v1`,
-      for when the client is on the haikei tailnet
+    - `pedrogpt-haikei` — the same box by Tailscale IP, for a client that cannot
+      resolve MagicDNS (current IP `100.93.195.29`; may change)
   - Both pedrogpt entries address ONE machine: only one model is resident at a
     time (32GB VRAM), so switching triggers a ~18GB reload.
-  - Default model: `ray/deepseek-ai/DeepSeek-V4-Flash-0731`. MiniMax is no longer
-    listed in `opencode.json` — it is not running. To go back to it, re-add the
-    model entry and switch `START_SCRIPT` (see `spark-vllm/RUNBOOK.md`).
+  - pedrogpt models marked "(staged)" (Nemotron 3.5 Lightning, Gemma 4 31B and 26B-A4B MoE)
+    are in the configs but NOT deployed (Muse Glimmer and Clef are documented only,
+    in `pedro-ops/docs/gpu-models.md`); they need llama.cpp rebuilt first
+    (see `pedro-ops/docs/gpu-models.md`) and will return model-not-found until then.
+  - Spark model: GLM-5.3-Flash (`nvidia/GLM-5.3-Flash-FP4-Local`) is the candidate
+    replacing `deepseek-ai/DeepSeek-V4-Flash`; the top-level `model` key is unchanged
+    until it is verified. MiniMax is no longer listed in `opencode.json` — it is not
+    running. To go back to it, re-add the model entry and switch `START_SCRIPT`
+    (see `spark-vllm/RUNBOOK.md`).
   - Keep `context + output` under the server's `--max-model-len`.
 
 - **spark-vllm/**: Two-node Spark vLLM cluster (serves the OpenCode provider above)

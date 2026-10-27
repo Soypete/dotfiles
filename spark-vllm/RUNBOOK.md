@@ -194,6 +194,7 @@ falling back to MiniMax if that file is absent. Only one model runs at a time �
 | `START_SCRIPT` | Model | Status |
 |---|---|---|
 | `start-cluster-deepseek.sh` | DeepSeek-V4-Flash-0731 | ✅ current default |
+| `start-cluster-glm.sh` | GLM-5.3-Flash (FP4-Local) | 🧪 candidate — run `--setup` first, benchmark vs DeepSeek before making default |
 | `start-cluster.sh` | MiniMax-M2.5-AWQ | ✅ known-good fallback |
 
 Switching models means updating **both** ends: `/etc/default/vllm-cluster` on the
