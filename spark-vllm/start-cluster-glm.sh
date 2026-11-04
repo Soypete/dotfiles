@@ -30,4 +30,16 @@ export PATH="$HOME/.local/bin:$PATH"
 
 cd "$SPARK_VLLM_DIR"
 
-exec ./run-recipe.sh "$RECIPE" -n "$NODES"
+# Extra `vllm serve` flags, appended after `--` by run-recipe.py (kept here, not in
+# a forked recipe, so the upstream recipe stays a clean `git pull`).
+#
+# --scheduling-policy priority: many clients share this server and the recipe caps
+# max_num_seqs at 4, so interactive chats were queueing behind batch traffic
+# (evals, workers). With this policy each request's `priority` field orders the
+# queue: LOWER value = served first; the default is 0. Interactive clients send a
+# negative priority (e.g. -10); batch clients send nothing. Without this flag the
+# current build accepts and IGNORES `priority` (older vLLM rejected it with 400).
+# See pedro-ops docs/gpu-models.md.
+VLLM_EXTRA_ARGS=(--scheduling-policy priority)
+
+exec ./run-recipe.sh "$RECIPE" -n "$NODES" -- "${VLLM_EXTRA_ARGS[@]}"

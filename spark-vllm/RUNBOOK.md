@@ -203,6 +203,32 @@ are listed there; change the top-level `model` key). The server matches on exact
 model id, so a mismatch leaves the endpoint up but returns model-not-found rather
 than a connection error.
 
+### Priority scheduling (GLM)
+
+`start-cluster-glm.sh` appends `--scheduling-policy priority` to the recipe's
+`vllm serve` command (via `run-recipe.sh ... -- <extra args>`). Requests are then
+ordered by their `priority` field — **lower value is served first**, default `0` —
+instead of first-come-first-served. Interactive clients (Open WebUI chats) send a
+negative priority such as `-10`; batch clients (evals, workers) send nothing.
+Only the GLM script has the flag; the DeepSeek/MiniMax rollback scripts are FCFS.
+The current build (`vllm-0.1.dev21830+g8244d1c44`) accepts and ignores `priority`
+under FCFS (HTTP 200, measured 2026-11-04); older vLLM rejected it with 400.
+
+Confirm it is live after a restart:
+
+```bash
+# vLLM logs its "non-default args" dict at startup; expect 'scheduling_policy': 'priority'
+ssh spark-f5ea 'sudo journalctl -u vllm-cluster --since "30 min ago" | grep -m1 -o "scheduling_policy[^,]*"'
+curl -s http://spark-f5ea:8000/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model":"nvidia/GLM-5.3-Flash-FP4-Local","priority":-10,"max_tokens":8,
+       "messages":[{"role":"user","content":"hi"}]}' | jq '.choices[0].message // .'
+```
+
+A 200 from the request does **not** prove the policy is on (FCFS ignores the
+field); the `scheduling_policy` log line is the check. If it is missing, run
+`./run-recipe.sh glm-5.3-flash -n 192.168.100.10,192.168.100.11 --dry-run -- --scheduling-policy priority`
+in `~/spark-vllm-docker` and confirm the flag is on the generated command.
+
 ### DeepSeek-V4-Flash-0731 startup profile (2026-09-08, first successful serve)
 
 ~4 minutes cold to `Application startup complete.`:
