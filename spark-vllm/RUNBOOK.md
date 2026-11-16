@@ -350,6 +350,73 @@ Note the head node's tailscale0 address (`100.87.122.109`) stays up throughout,
 since it is unrelated to the QSFP fabric — the endpoint being unreachable while
 the host still pings is expected here, not evidence of a network problem.
 
+The same `carrier=0` fault can surface as `Error: Could not determine IP/CIDR for
+interface enp1s0f0np0` instead; see "Outage 2026-11-15" below.
+
+### Outage 2026-11-15: worker hung, QSFP link down (10-minute fix)
+
+**Symptom.** `/v1/models` on spark-f5ea answered, but chat requests stalled.
+`vllm-cluster.service` looped on:
+
+```
+Error: Could not determine IP/CIDR for interface enp1s0f0np0
+```
+
+**Cause.** No QSFP carrier to spark-771e: `cat /sys/class/net/enp1s0f0np0/carrier`
+printed `0`, and `ip addr` showed no `192.168.100.10`. spark-771e was also
+unreachable on the LAN (`192.168.1.84`) because it had hung. This is the
+`carrier=0` case from "No active IB interfaces found." above, so netplan was not
+involved. **Why the worker hung is not verified.** Out-of-memory was suspected,
+but no evidence was collected.
+
+**Fix.**
+
+1. Power-cycle spark-771e (no BMC, so at the box or its outlet).
+2. On spark-f5ea, confirm the fabric before restarting:
+
+   ```bash
+   cat /sys/class/net/enp1s0f0np0/carrier   # must be 1
+   ip addr show enp1s0f0np0                 # must show 192.168.100.10/24
+   ping -c 2 192.168.100.11
+   ```
+
+3. Clean restart, from `/home/soypete`:
+
+   ```bash
+   ./cleanup-containers.sh
+   sudo systemctl restart vllm-cluster
+   ```
+
+4. Weights loaded in 145 s, then warm-up; the model served again about 5 minutes
+   after the restart. Confirm with a real completion (see "`/health` returns 200
+   while inference hangs"), not `/v1/models`.
+
+Journal lines of a healthy start, in order
+(`sudo journalctl -u vllm-cluster -f`):
+
+- `Detected Local IP: 192.168.100.10`
+- `SSH to 192.168.100.11: OK`
+- container image hash match between the nodes
+- weights loaded, 91.99 GB per node
+- model loading 83.62 GiB (vLLM's `Model loading took ...` line)
+
+**Next time, before power-cycling** (to test the out-of-memory theory): if the
+worker still answers on any path, capture `free -h`, `/proc/meminfo` and
+`dmesg | grep -i oom` on both nodes; after the reboot, check the previous boot
+with `journalctl -k -b -1 | grep -i oom`. Read `free` with "Only 5-6 GB free!"
+below in mind, and compare against the power-loss checks in "spark-771e dies
+silently".
+
+**Benchmarks after the restart** (GLM-5.3-Flash-FP4, MTP
+`num_speculative_tokens=5`, client side, cluster possibly shared, so a lower
+bound): single-stream decode median 30.5 tok/s (28.3-32.8 over 6 runs of 400
+tokens), TTFT ~44 ms on a short prompt, prefill 1447-1872 tok/s from ~3k to ~44k
+prompt tokens, MTP average draft acceptance 43.9% (~3.2 tokens per verification
+pass). For reference, DeepSeek-V4-Flash-0731 measured ~64 tok/s single stream on
+this hardware (2026-08-31), with a different method. Full tables, the scripts and
+the untested tuning hypotheses (for example `num_speculative_tokens=3`) are in
+pedro-ops `docs/spark-vllm-troubleshooting.md` and `scripts/spark-vllm-bench/`.
+
 ### Boot hangs on "Waiting for creating a placement group" with 1 GPU
 QSFP static IPs are gone (interfaces fell back to link-local 169.254.x), so
 `launch-cluster.sh` autodiscovery can't find the worker and boots solo.
